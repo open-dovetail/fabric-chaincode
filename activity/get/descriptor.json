@@ -1,0 +1,44 @@
+{
+    "name": "fabric-get",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Get",
+    "description": "This activity fetches data by key from fabric ledger",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/activity/get",
+    "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/get",
+    "inputs": [{
+            "name": "key",
+            "type": "string",
+            "required": true,
+            "description": "state key of the record to fetch from ledger"
+        },
+        {
+            "name": "privateCollection",
+            "type": "string",
+            "required": false,
+            "description": "name of private collection, or blank if not private data"
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer",
+            "description": "status code, e.g., 200 if successful"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "serialized result string, or error message"
+        },
+        {
+            "name": "key",
+            "type": "string",
+            "description": "state key of the returned record"
+        },
+        {
+            "name": "result",
+            "type": "object",
+            "description": "the parsed JSON object corresponding to the record from ledger"
+        }
+    ]
+}

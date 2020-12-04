@@ -1,0 +1,54 @@
+{
+    "name": "fabric-put",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Put",
+    "description": "This activity stores data to fabric ledger",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/activity/put",
+    "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/put",
+    "settings": [{
+        "name": "compositeKeys",
+        "type": "string",
+        "description": "composite keys and attributes of format index1=attr1,attr2;index2=attr1,attr2 (Note: if state key does not match the value of the last attribute of an index, the state-key will be appended to the end of the index), e.g. \"index-color=color,name;index-owner=owner,name\""
+    }],
+    "inputs": [{
+            "name": "key",
+            "type": "string",
+            "required": true,
+            "description": "state key of the record to update on the ledger"
+        },
+        {
+            "name": "data",
+            "type": "string",
+            "required": true,
+            "description": "serialized JSON string of the record to update"
+        },
+        {
+            "name": "privateCollection",
+            "type": "string",
+            "description": "name of private collection, or blank if not private data"
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer",
+            "description": "status code, e.g., 200 if successful"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "serialized result string from the ledger, or error message"
+        },
+        {
+            "name": "key",
+            "type": "string",
+            "description": "state key of the returned record"
+        },
+        {
+            "name": "result",
+            "type": "object",
+            "description": "the parsed JSON object corresponding to the record from ledger"
+        }
+    ]
+}

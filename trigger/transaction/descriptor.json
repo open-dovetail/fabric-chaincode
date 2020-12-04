@@ -1,0 +1,63 @@
+{
+    "name": "fabric-transaction",
+    "type": "flogo:trigger",
+    "version": "1.0.0",
+    "title": "Fabric Transaction",
+    "description": "This trigger executes a Hyperledger Fabric transaction",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+    "homepage": "https://github.com/open-dovetail/fabric-chaincode/tree/master/trigger/transaction",
+    "settings": [],
+    "handler": {
+        "settings": [{
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Name of the transaction for Hyperledger Fabric contract"
+            },
+            {
+                "name": "arguments",
+                "type": "array",
+                "description": "list of input argument names",
+                "value": "[]"
+            }
+        ]
+    },
+    "output": [{
+            "name": "parameters",
+            "type": "object",
+            "description": "name-value pairs containing matching argument names specified by settings"
+        },
+        {
+            "name": "transient",
+            "type": "object",
+            "description": "transient attributes as name-value pairs"
+        },
+        {
+            "name": "txID",
+            "type": "string",
+            "description": "auto generated Fabric transaction ID"
+        },
+        {
+            "name": "txTime",
+            "type": "string",
+            "description": "auto generated Fabric transaction timestamp"
+        }
+    ],
+    "reply": [{
+            "name": "status",
+            "type": "int",
+            "description": "status code, e.g. 200 for successful completion"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "error message if process failed"
+        },
+        {
+            "name": "returns",
+            "type": "string",
+            "description": "returned JSON string that could be an object or array"
+        }
+    ]
+}
