@@ -1,0 +1,220 @@
+{
+    "info": {
+        "title": "Sample contract API",
+        "version": "v0.0.1"
+    },
+    "contracts": {
+        "demo-contract": {
+            "name": "Marble Exchange",
+            "transactions": [{
+                    "name": "createMarble",
+                    "parameters": [{
+                            "name": "name",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "color",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "size",
+                            "schema": {
+                                "type": "integer"
+                            }
+                        },
+                        {
+                            "name": "owner",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "returns": {
+                        "$ref": "#/components/schemas/marble"
+                    },
+                    "rules": [{
+                            "description": "extract client ID from request context",
+                            "actions": [{
+                                "activity": "cid",
+                                "name": "client"
+                            }]
+                        },
+                        {
+                            "description": "reject request if client is not exchange admin",
+                            "condition": {
+                                "prerequisite": "client",
+                                "expr": "$client.data.role != \"admin\""
+                            },
+                            "actions": [{
+                                "activity": "error",
+                                "terminate": true,
+                                "input": {
+                                    "code": 500,
+                                    "message": "user is not authorized to create marble"
+                                }
+                            }]
+                        },
+                        {
+                            "description": "create or update ledger state",
+                            "condition": {
+                                "prerequisite": "client"
+                            },
+                            "actions": [{
+                                    "activity": "mapper",
+                                    "name": "mapper",
+                                    "input": {
+                                        "docType": "marble",
+                                        "name": "=$.name",
+                                        "color": "=$.color",
+                                        "size": "=$.size",
+                                        "owner": "=$.owner"
+                                    }
+                                },
+                                {
+                                    "activity": "put",
+                                    "terminate": true,
+                                    "input": {
+                                        "key": "=$.name",
+                                        "data": "=$mapper.data"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "queryMarbleByOwner",
+                    "parameters": [{
+                        "name": "owner",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }],
+                    "returns": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/marbleKeyValue"
+                        }
+                    },
+                    "rules": [{
+                            "description": "extract client ID from request context",
+                            "actions": [{
+                                "activity": "cid",
+                                "name": "client"
+                            }]
+                        },
+                        {
+                            "description": "reject request if client is not the owner",
+                            "condition": {
+                                "prerequisite": "client",
+                                "expr": "$client.data.name != $.owner"
+                            },
+                            "actions": [{
+                                "activity": "error",
+                                "terminate": true,
+                                "input": {
+                                    "code": 500,
+                                    "message": "user is not authorized to execute the query"
+                                }
+                            }]
+                        },
+                        {
+                            "description": "query the ledger state",
+                            "condition": {
+                                "prerequisite": "client"
+                            },
+                            "actions": [{
+                                "activity": "query",
+                                "terminate": true,
+                                "input": {
+                                    "owner": "=$.owner"
+                                }
+                            }]
+                        }
+                    ]
+                },
+                {
+                    "name": "marbleHistory",
+                    "parameters": [{
+                        "name": "name",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }],
+                    "returns": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/marbleHistory"
+                        }
+                    },
+                    "rules": [{
+                        "description": "retrieve ledger history of a specified marble",
+                        "actions": [{
+                            "activity": "gethistory",
+                            "terminate": true,
+                            "input": {
+                                "name": "=$.name"
+                            }
+                        }]
+                    }]
+                }
+            ]
+        }
+    },
+    "components": {
+        "schemas": {
+            "marble": {
+                "$id": "marble",
+                "properties": {
+                    "docType": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "color": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer"
+                    },
+                    "owner": {
+                        "type": "string"
+                    }
+                }
+            },
+            "marbleKeyValue": {
+                "$id": "marbleKeyValue",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "$ref": "#/components/schemas/marble"
+                    }
+                }
+            },
+            "marbleHistory": {
+                "$id": "marbleHistory",
+                "properties": {
+                    "txID": {
+                        "type": "string"
+                    },
+                    "txTime": {
+                        "type": "string"
+                    },
+                    "isDeleted": {
+                        "type": "boolean"
+                    },
+                    "value": {
+                        "$ref": "#/components/schemas/marble"
+                    }
+                }
+            }
+        }
+    }
+}
