@@ -339,7 +339,7 @@
         },
         "rule": {
             "type": "object",
-            "description": "condition and actions for a sequence of operations of the transaction",
+            "description": "condition and sequence of actions for processing the transaction",
             "required": [
                 "actions"
             ],
@@ -353,6 +353,7 @@
                 },
                 "actions": {
                     "type": "array",
+                    "description": "a sequence of operations to process the transaction request",
                     "items": {
                         "$ref": "#/definitions/action"
                     }
@@ -362,7 +363,7 @@
         },
         "condition": {
             "type": "object",
-            "description": "precondition for a sequence of operations of a transaction",
+            "description": "precondition before executing a sequence of operations for a transaction",
             "required": [
                 "prerequisite"
             ],
@@ -373,7 +374,7 @@
                 },
                 "prerequisite": {
                     "type": "string",
-                    "description": "name of the last activity that must be executed before this condition is evaluated"
+                    "description": "name of the last activity that must be executed before the condition is evaluated"
                 },
                 "expr": {
                     "type": "string",
@@ -384,14 +385,14 @@
         },
         "action": {
             "type": "object",
-            "description": "sequence of operations for processing a transaction",
+            "description": "an operation step for processing a transaction",
             "required": [
                 "activity"
             ],
             "properties": {
                 "activity": {
                     "type": "string",
-                    "description": "type of the operation to be executed, e.g., 'put' for updating a ledger"
+                    "description": "type of the operation to be executed, e.g., 'put' for updating a ledger state"
                 },
                 "description": {
                     "type": "string",
