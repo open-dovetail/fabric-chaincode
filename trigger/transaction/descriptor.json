@@ -23,7 +23,7 @@
             {
                 "name": "arguments",
                 "type": "array",
-                "description": "list of input argument names",
+                "description": "list of input argument name and type",
                 "value": "[]"
             }
         ]
@@ -50,7 +50,7 @@
         },
         {
             "name": "cid",
-            "type": "object",
+            "type": "params",
             "description": "client ID includes standard attributes (id, mspid, cn) and configured custom attributes"
         }
     ],

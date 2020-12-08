@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -268,7 +267,7 @@ func ConstructQueryResponse(resultsIterator shim.StateQueryIteratorInterface, co
 }
 
 // ExtractCompositeKeys collects all valid composite-keys matching composite-key definitions using fields of a value object
-func ExtractCompositeKeys(stub shim.ChaincodeStubInterface, compositeKeyDefs string, keyValue string, value interface{}) []string {
+func ExtractCompositeKeys(stub shim.ChaincodeStubInterface, compositeKeyDefs map[string][]string, keyValue string, value interface{}) []string {
 	// verify that value is a map
 	obj, ok := value.(map[string]interface{})
 	if !ok {
@@ -278,13 +277,8 @@ func ExtractCompositeKeys(stub shim.ChaincodeStubInterface, compositeKeyDefs str
 
 	// check composite keys
 	if len(compositeKeyDefs) > 0 {
-		keyMap, err := ParseCompositeKeyDefs(compositeKeyDefs)
-		if err != nil {
-			logger.Errorf("failed to parse composite key definition: %+v", err)
-			return nil
-		}
 		var compositeKeys []string
-		for keyName, attributes := range keyMap {
+		for keyName, attributes := range compositeKeyDefs {
 			if ck := makeCompositeKey(stub, keyName, attributes, keyValue, obj); ck != "" {
 				compositeKeys = append(compositeKeys, ck)
 			}
@@ -293,21 +287,6 @@ func ExtractCompositeKeys(stub shim.ChaincodeStubInterface, compositeKeyDefs str
 	}
 	logger.Debugf("No composite key is defined")
 	return nil
-}
-
-// ParseCompositeKeyDefs parses composite-key definition of format 'key1=field1,field2;key2=field3,field4'
-func ParseCompositeKeyDefs(def string) (map[string][]string, error) {
-	m := make(map[string][]string)
-	keys := strings.Split(def, ";")
-	for _, key := range keys {
-		tokens := strings.Split(key, "=")
-		if len(tokens) < 2 || len(tokens[0]) <= 0 || len(tokens[1]) <= 0 {
-			return nil, errors.Errorf("invalid composite-key definition %s", def)
-		}
-		fields := strings.Split(tokens[1], ",")
-		m[tokens[0]] = fields
-	}
-	return m, nil
 }
 
 // constructs composite key if all specified attributes exist in the value object

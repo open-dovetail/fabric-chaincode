@@ -4,17 +4,23 @@ import (
 	"github.com/project-flogo/core/data/coerce"
 )
 
+// Attribute describes a name and data type
+type Attribute struct {
+	Name string `md:"name"`
+	Type string `md:"type"`
+}
+
 // Settings for the trigger
 type Settings struct {
 	CIDAttrs []string `md:"cidattrs"`
 }
 
 // HandlerSettings for the trigger
-// arguments are of fomat "name:type", e.g., ["owner:string", "price:number"]
-// type is any valid JSON type, i.e., string (default), number, integer, boolean, array, object.
+// arguments are of parameter names and associated JSON data type
+// type is any valid JSON type, i.e., string, number, integer, boolean, array, object.
 type HandlerSettings struct {
-	Name      string   `md:"name,required"`
-	Arguments []string `md:"arguments"`
+	Name      string       `md:"name,required"`
+	Arguments []*Attribute `md:"arguments"`
 }
 
 // Output of the trigger
@@ -23,7 +29,7 @@ type Output struct {
 	Transient  map[string]interface{} `md:"transient"`
 	TxID       string                 `md:"txID"`
 	TxTime     string                 `md:"txTime"`
-	CID        map[string]interface{} `md:"cid"`
+	CID        map[string]string      `md:"cid"`
 }
 
 // Reply from the trigger
@@ -33,6 +39,22 @@ type Reply struct {
 	Returns string `md:"returns"`
 }
 
+// construct Attribute from map of name and type
+func toAttribute(values interface{}) *Attribute {
+	var attr Attribute
+	if m, ok := values.(map[string]interface{}); ok {
+		attr.Name = m["name"].(string)
+		attr.Type = m["type"].(string)
+	}
+	if len(attr.Name) == 0 {
+		return nil
+	}
+	if len(attr.Type) == 0 {
+		attr.Type = "string"
+	}
+	return &attr
+}
+
 // FromMap sets settings from a map
 func (h *Settings) FromMap(values map[string]interface{}) error {
 	attrs, err := coerce.ToArray(values["cidattrs"])
@@ -40,9 +62,8 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 		return err
 	}
 	if attrs != nil && len(attrs) > 0 {
-		h.CIDAttrs = make([]string, len(attrs))
-		for i, v := range attrs {
-			h.CIDAttrs[i] = v.(string)
+		for _, v := range attrs {
+			h.CIDAttrs = append(h.CIDAttrs, v.(string))
 		}
 	}
 	return nil
@@ -59,9 +80,10 @@ func (h *HandlerSettings) FromMap(values map[string]interface{}) error {
 		return err
 	}
 	if args != nil && len(args) > 0 {
-		h.Arguments = make([]string, len(args))
-		for i, v := range args {
-			h.Arguments[i] = v.(string)
+		for _, v := range args {
+			if attr := toAttribute(v); attr != nil {
+				h.Arguments = append(h.Arguments, attr)
+			}
 		}
 	}
 	return nil
@@ -82,7 +104,7 @@ func (o *Output) FromMap(values map[string]interface{}) error {
 	if o.TxTime, err = coerce.ToString(values["txTime"]); err != nil {
 		return err
 	}
-	if o.CID, err = coerce.ToObject(values["cid"]); err != nil {
+	if o.CID, err = coerce.ToParams(values["cid"]); err != nil {
 		return err
 	}
 

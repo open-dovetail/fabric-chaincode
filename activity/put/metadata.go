@@ -6,7 +6,7 @@ import (
 
 // Settings of the activity
 type Settings struct {
-	CompositeKeys string `md:"compositeKeys"`
+	CompositeKeys map[string][]string `md:"compositeKeys"`
 }
 
 // Input of the activity
@@ -22,6 +22,36 @@ type Output struct {
 	Message  string                 `md:"message"`
 	StateKey string                 `md:"key"`
 	Result   map[string]interface{} `md:"result"`
+}
+
+// FromMap sets settings from a map
+// construct composite key definition of format {"index": ["field1, "field2"]}
+func (h *Settings) FromMap(values map[string]interface{}) error {
+	keys, err := coerce.ToObject(values["compositeKeys"])
+	if err != nil {
+		return err
+	}
+	if keys == nil || len(keys) == 0 {
+		return nil
+	}
+	for k, v := range keys {
+		var fields []string
+		values, err := coerce.ToArray(v)
+		if err != nil || values == nil || len(values) == 0 {
+			logger.Warnf("ignored composite key setting for index %s. error: %+v", k, err)
+			continue
+		}
+		for _, n := range values {
+			if f, ok := n.(string); ok && len(f) > 0 {
+				fields = append(fields, f)
+			}
+		}
+		if len(fields) > 0 {
+			h.CompositeKeys[k] = fields
+			logger.Debugf("configured composite key %s with fields %+v", k, fields)
+		}
+	}
+	return nil
 }
 
 // ToMap converts activity input to a map

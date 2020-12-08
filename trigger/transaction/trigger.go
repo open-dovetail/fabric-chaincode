@@ -44,7 +44,7 @@ func (t *Factory) New(config *trigger.Config) (trigger.Trigger, error) {
 			id:        config.Id,
 			cidAttrs:  setting.CIDAttrs,
 			handlers:  map[string]trigger.Handler{},
-			arguments: map[string][]string{},
+			arguments: map[string][]*Attribute{},
 		}
 		return singleton, nil
 	}
@@ -62,7 +62,7 @@ type Trigger struct {
 	id        string
 	cidAttrs  []string
 	handlers  map[string]trigger.Handler
-	arguments map[string][]string
+	arguments map[string][]*Attribute
 }
 
 // Initialize implements trigger.Init.Initialize
@@ -178,7 +178,7 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 	return 200, reply.Returns, nil
 }
 
-func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]interface{}, error) {
+func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]string, error) {
 	// get client identity
 	c, err := cid.New(stub)
 	if err != nil {
@@ -187,7 +187,7 @@ func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]inter
 	}
 
 	// retrieve data from client identity
-	client := make(map[string]interface{})
+	var client map[string]string
 	if id, err := c.GetID(); err == nil {
 		client["id"] = id
 	}
@@ -200,9 +200,11 @@ func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]inter
 	}
 
 	// retrieve custom attributes from client identity
-	for _, k := range t.cidAttrs {
-		if v, ok, err := c.GetAttributeValue(k); err == nil && ok {
-			client[k] = v
+	if t.cidAttrs != nil {
+		for _, k := range t.cidAttrs {
+			if v, ok, err := c.GetAttributeValue(k); err == nil && ok {
+				client[k] = v
+			}
 		}
 	}
 	return client, nil
@@ -232,9 +234,9 @@ func prepareTransient(stub shim.ChaincodeStubInterface) (map[string]interface{},
 }
 
 // construct trigger output parameters for specified parameter index, and values of the parameters
-func prepareParameters(names []string, values []string) (map[string]interface{}, error) {
-	logger.Debugf("prepare parameters %+v values %+v", names, values)
-	if names == nil || len(values) != len(names) {
+func prepareParameters(attrs []*Attribute, values []string) (map[string]interface{}, error) {
+	logger.Debugf("prepare parameters %+v values %+v", attrs, values)
+	if attrs == nil || len(values) != len(attrs) {
 		return nil, errors.New("transaction paramters do not match required argument list")
 	}
 
@@ -243,15 +245,10 @@ func prepareParameters(names []string, values []string) (map[string]interface{},
 	if values != nil && len(values) > 0 {
 		// populate input args
 		for i, v := range values {
-			arg := strings.TrimSpace(names[i])
-			tokens := strings.Split(arg, ":")
-			name := tokens[0]
-			jsonType := jschema.TYPE_STRING
-			if len(tokens) > 1 {
-				jsonType = tokens[1]
-			}
+			name := strings.TrimSpace(attrs[i].Name)
+			jsonType := strings.TrimSpace(attrs[i].Type)
 			if obj := unmarshalString(v, jsonType, name); obj != nil {
-				result[arg] = obj
+				result[name] = obj
 			}
 		}
 	}
@@ -301,7 +298,7 @@ func unmarshalString(data, jsonType, name string) interface{} {
 	case jschema.TYPE_OBJECT:
 		var result map[string]interface{}
 		if err := json.Unmarshal([]byte(data), &result); err != nil {
-			logger.Warnf("failed to convert parameter %s to object: data '%s' error %+v", name, data, err)
+			logger.Warnf("failed to convert parameter %s to object: data '%s' error: %+v", name, data, err)
 		}
 		return result
 	default:

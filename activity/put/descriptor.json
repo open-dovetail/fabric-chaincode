@@ -9,8 +9,8 @@
     "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/put",
     "settings": [{
         "name": "compositeKeys",
-        "type": "string",
-        "description": "composite keys and attributes of format index1=attr1,attr2;index2=attr1,attr2 (Note: if state key does not match the value of the last attribute of an index, the state-key will be appended to the end of the index), e.g. \"index-color=color,name;index-owner=owner,name\""
+        "type": "object",
+        "description": "composite keys and attributes as object map[string][]string, e.g. {index1: [attr1,attr2]} (Note: if state key does not match the value of the last attribute of an index, the state-key will be appended to the end of the index)"
     }],
     "inputs": [{
             "name": "key",

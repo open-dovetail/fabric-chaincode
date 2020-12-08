@@ -8,7 +8,6 @@ import (
 	"github.com/open-dovetail/fabric-chaincode/common"
 	"github.com/pkg/errors"
 	"github.com/project-flogo/core/activity"
-	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/support/log"
 )
 
@@ -23,17 +22,17 @@ func init() {
 
 // Activity is a stub for executing Hyperledger Fabric put operations
 type Activity struct {
-	compositeKeys string
+	compositeKeys map[string][]string
 }
 
 // New creates a new Activity
 func New(ctx activity.InitContext) (activity.Activity, error) {
 	s := &Settings{}
-	if err := metadata.MapToStruct(ctx.Settings(), s, true); err == nil && len(s.CompositeKeys) > 0 {
+	if err := s.FromMap(ctx.Settings()); err == nil {
 		return &Activity{compositeKeys: s.CompositeKeys}, nil
 	}
 
-	return &Activity{compositeKeys: ""}, nil
+	return &Activity{compositeKeys: nil}, nil
 }
 
 // Metadata implements activity.Activity.Metadata
