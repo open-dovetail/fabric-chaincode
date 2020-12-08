@@ -6,6 +6,7 @@ import (
 
 // Settings for the trigger
 type Settings struct {
+	CIDAttrs []string `md:"cidattrs"`
 }
 
 // HandlerSettings for the trigger
@@ -22,6 +23,7 @@ type Output struct {
 	Transient  map[string]interface{} `md:"transient"`
 	TxID       string                 `md:"txID"`
 	TxTime     string                 `md:"txTime"`
+	CID        map[string]interface{} `md:"cid"`
 }
 
 // Reply from the trigger
@@ -29,6 +31,21 @@ type Reply struct {
 	Status  int    `md:"status"`
 	Message string `md:"message"`
 	Returns string `md:"returns"`
+}
+
+// FromMap sets settings from a map
+func (h *Settings) FromMap(values map[string]interface{}) error {
+	attrs, err := coerce.ToArray(values["cidattrs"])
+	if err != nil {
+		return err
+	}
+	if attrs != nil && len(attrs) > 0 {
+		h.CIDAttrs = make([]string, len(attrs))
+		for i, v := range attrs {
+			h.CIDAttrs[i] = v.(string)
+		}
+	}
+	return nil
 }
 
 // FromMap sets handling settings from a map
@@ -65,6 +82,9 @@ func (o *Output) FromMap(values map[string]interface{}) error {
 	if o.TxTime, err = coerce.ToString(values["txTime"]); err != nil {
 		return err
 	}
+	if o.CID, err = coerce.ToObject(values["cid"]); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -76,6 +96,7 @@ func (o *Output) ToMap() map[string]interface{} {
 		"transient":  o.Transient,
 		"txID":       o.TxID,
 		"txTime":     o.TxTime,
+		"cid":        o.CID,
 	}
 }
 

@@ -6,6 +6,8 @@ replace github.com/project-flogo/flow => github.com/yxuco/flow v1.1.1
 
 replace github.com/project-flogo/core => github.com/yxuco/core v1.2.1
 
+replace go.uber.org/multierr => go.uber.org/multierr v1.6.0
+
 require (
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20201119163726-f8ef75b17719
 	github.com/open-dovetail/fabric-chaincode/common v0.0.1

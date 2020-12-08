@@ -12,6 +12,7 @@ import (
 
 	"github.com/project-flogo/core/trigger"
 
+	"github.com/hyperledger/fabric-chaincode-go/pkg/cid"
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/open-dovetail/fabric-chaincode/common"
 	"github.com/project-flogo/core/support/log"
@@ -34,8 +35,14 @@ type Factory struct {
 // New implements trigger.Factory.New
 func (t *Factory) New(config *trigger.Config) (trigger.Trigger, error) {
 	if singleton == nil {
+		setting := &Settings{}
+		if err := setting.FromMap(config.Settings); err != nil {
+			logger.Warnf("Failed to extract trigger setting config: %+v", err)
+		}
+
 		singleton = &Trigger{
 			id:        config.Id,
+			cidAttrs:  setting.CIDAttrs,
 			handlers:  map[string]trigger.Handler{},
 			arguments: map[string][]string{},
 		}
@@ -53,6 +60,7 @@ func (*Factory) Metadata() *trigger.Metadata {
 // Trigger is the Fabric transaction Trigger implementation
 type Trigger struct {
 	id        string
+	cidAttrs  []string
 	handlers  map[string]trigger.Handler
 	arguments map[string][]string
 }
@@ -98,8 +106,13 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 		return 400, msg, errors.New(msg)
 	}
 
-	// construct transaction parameters
+	// extract client ID
 	triggerData := &Output{}
+	if client, err := singleton.extractCID(stub); err == nil {
+		triggerData.CID = client
+	}
+
+	// construct transaction parameters
 	paramData, err := prepareParameters(singleton.arguments[fn], args)
 	if err != nil {
 		return 400, err.Error(), err
@@ -134,6 +147,7 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 		common.FabricStub:   stub,
 		common.FabricTxID:   triggerData.TxID,
 		common.FabricTxTime: triggerData.TxTime,
+		common.FabricCID:    triggerData.CID,
 	}
 	ctx := trigger.NewContextWithValues(context.Background(), ctxValues)
 	results, err := handler.Handle(ctx, triggerData.ToMap())
@@ -162,6 +176,36 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 
 	logger.Debugf("Flogo flow returned data: %s", reply.Returns)
 	return 200, reply.Returns, nil
+}
+
+func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]interface{}, error) {
+	// get client identity
+	c, err := cid.New(stub)
+	if err != nil {
+		logger.Errorf("failed to extract client identity from stub: %+v\n", err)
+		return nil, errors.Wrap(err, "failed to extract client identity from stub")
+	}
+
+	// retrieve data from client identity
+	client := make(map[string]interface{})
+	if id, err := c.GetID(); err == nil {
+		client["id"] = id
+	}
+	if mspid, err := c.GetMSPID(); err == nil {
+		client["mspid"] = mspid
+	}
+
+	if cert, err := c.GetX509Certificate(); err == nil {
+		client["cn"] = cert.Subject.CommonName
+	}
+
+	// retrieve custom attributes from client identity
+	for _, k := range t.cidAttrs {
+		if v, ok, err := c.GetAttributeValue(k); err == nil && ok {
+			client[k] = v
+		}
+	}
+	return client, nil
 }
 
 // construct trigger output transient attributes

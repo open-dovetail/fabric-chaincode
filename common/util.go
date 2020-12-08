@@ -30,6 +30,8 @@ const (
 	FabricTxID = "txID"
 	// FabricTxTime is the name of flow property for passing auto-generated transaction Time to activities
 	FabricTxTime = "txTime"
+	// FabricCID is the name of flow property for passing client ID to activities
+	FabricCID = "cid"
 )
 
 var logger = log.ChildLogger(log.RootLogger(), "fabric-chaincode-common")

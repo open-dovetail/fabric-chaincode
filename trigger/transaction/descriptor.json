@@ -7,7 +7,12 @@
     "author": "Yueming Xu",
     "ref": "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
     "homepage": "https://github.com/open-dovetail/fabric-chaincode/tree/master/trigger/transaction",
-    "settings": [],
+    "settings": [{
+        "name": "cidattrs",
+        "type": "array",
+        "description": "list of attributes of client ID, besides standard id, mspid, and cn",
+        "value": "[]"
+    }],
     "handler": {
         "settings": [{
                 "name": "name",
@@ -42,6 +47,11 @@
             "name": "txTime",
             "type": "string",
             "description": "auto generated Fabric transaction timestamp"
+        },
+        {
+            "name": "cid",
+            "type": "object",
+            "description": "client ID includes standard attributes (id, mspid, cn) and configured custom attributes"
         }
     ],
     "reply": [{
