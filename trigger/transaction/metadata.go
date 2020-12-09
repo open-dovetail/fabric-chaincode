@@ -43,8 +43,12 @@ type Reply struct {
 func toAttribute(values interface{}) *Attribute {
 	var attr Attribute
 	if m, ok := values.(map[string]interface{}); ok {
-		attr.Name = m["name"].(string)
-		attr.Type = m["type"].(string)
+		if v, s := m["name"].(string); s {
+			attr.Name = v
+		}
+		if v, s := m["type"].(string); s {
+			attr.Type = v
+		}
 	}
 	if len(attr.Name) == 0 {
 		return nil
@@ -63,7 +67,9 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 	}
 	if attrs != nil && len(attrs) > 0 {
 		for _, v := range attrs {
-			h.CIDAttrs = append(h.CIDAttrs, v.(string))
+			if s, ok := v.(string); ok && len(s) > 0 {
+				h.CIDAttrs = append(h.CIDAttrs, s)
+			}
 		}
 	}
 	return nil
