@@ -187,7 +187,7 @@ func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]strin
 	}
 
 	// retrieve data from client identity
-	var client map[string]string
+	client := make(map[string]string)
 	if id, err := c.GetID(); err == nil {
 		client["id"] = id
 	}
