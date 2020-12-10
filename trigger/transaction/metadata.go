@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"fmt"
+
 	"github.com/project-flogo/core/data/coerce"
 )
 
@@ -57,6 +59,10 @@ func toAttribute(values interface{}) *Attribute {
 		attr.Type = "string"
 	}
 	return &attr
+}
+
+func (p *Attribute) String() string {
+	return fmt.Sprintf("(%s:%s)", p.Name, p.Type)
 }
 
 // FromMap sets settings from a map
