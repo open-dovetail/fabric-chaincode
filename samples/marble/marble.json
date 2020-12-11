@@ -1,0 +1,340 @@
+{
+  "name": "marble",
+  "type": "flogo:app",
+  "version": "0.0.1",
+  "appModel": "1.1.0",
+  "description": "",
+  "imports": [
+    "github.com/open-dovetail/dovetail-contrib/activity/jsonmapper",
+    "github.com/open-dovetail/fabric-chaincode/activity/get",
+    "github.com/open-dovetail/fabric-chaincode/activity/put",
+    "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/activity/log",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/flow"
+  ],
+  "triggers": [
+    {
+      "id": "fabric_transaction",
+      "ref": "#transaction",
+      "name": "Fabric Transaction",
+      "description": "This trigger executes a Hyperledger Fabric transaction",
+      "settings": {
+        "cidattrs": null
+      },
+      "handlers": [
+        {
+          "settings": {
+            "name": "initMarble",
+            "arguments": [
+              {
+                "name": "name"
+              },
+              {
+                "name": "color"
+              },
+              {
+                "name": "size",
+                "type": "integer"
+              },
+              {
+                "name": "owner"
+              }
+            ]
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:init_marble"
+            },
+            "input": {
+              "parameters": "=$.parameters"
+            },
+            "output": {
+              "message": "=$.message",
+              "returns": "=$.returns",
+              "status": "=$.status"
+            }
+          }
+        },
+        {
+          "settings": {
+            "name": "readMarble",
+            "arguments": [
+              {
+                "name": "name"
+              }
+            ]
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:read_marble"
+            },
+            "input": {
+              "name": "=$.parameters.name"
+            },
+            "output": {
+              "message": "=$.message",
+              "returns": "=$.returns",
+              "status": "=$.status"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:init_marble",
+      "data": {
+        "name": "initMarble",
+        "metadata": {
+          "input": [
+            {
+              "name": "parameters",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "status",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "string"
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "id": "log_2",
+            "name": "Log",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"create marble \", $flow.parameters.name, \" by client \", $flow.cid.cn)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "jsonmapper_4",
+            "name": "JSON Mapper",
+            "description": "This activity creates JSON string by mapping data in the flow scope",
+            "activity": {
+              "ref": "#jsonmapper",
+              "input": {
+                "data": {
+                  "mapping": {
+                    "docType": "marble",
+                    "name": "=$flow.parameters.name",
+                    "color": "=$flow.parameters.color",
+                    "size": "=$flow.parameters.size",
+                    "owner": "=$flow.parameters.owner"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_5",
+            "name": "Log (2)",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "addDetails": false,
+                "usePrint": false,
+                "message": "=string.concat(\"put marble: \", $activity[jsonmapper_4].result)"
+              }
+            }
+          },
+          {
+            "id": "put_3",
+            "name": "Put",
+            "description": "This activity stores data to fabric ledger",
+            "activity": {
+              "ref": "#put",
+              "input": {
+                "data": "=$activity[jsonmapper_4].result",
+                "key": "=$flow.parameters.name"
+              },
+              "settings": {
+                "compositeKeys": {
+                  "mapping": {
+                    "owner~name": [
+                      "docType",
+                      "owner",
+                      "name"
+                    ],
+                    "color~name": [
+                      "docType",
+                      "color",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "log_6",
+            "name": "Log (3)",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "addDetails": false,
+                "usePrint": false,
+                "message": "=string.concat(\"[PUT] \", $activity[put_3].key, \" = \", $activity[put_3].message)"
+              }
+            }
+          },
+          {
+            "id": "actreturn_7",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[put_3].code",
+                  "returns": "=coerce.toString($activity[put_3].result)",
+                  "message": "=$activity[put_3].message"
+                }
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "log_2",
+            "to": "jsonmapper_4"
+          },
+          {
+            "from": "jsonmapper_4",
+            "to": "log_5"
+          },
+          {
+            "from": "log_5",
+            "to": "put_3"
+          },
+          {
+            "from": "put_3",
+            "to": "log_6"
+          },
+          {
+            "from": "log_6",
+            "to": "actreturn_7"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flow:read_marble",
+      "data": {
+        "name": "readMarble",
+        "metadata": {
+          "input": [
+            {
+              "name": "name",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "returns",
+              "type": "string"
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "id": "log_2",
+            "name": "Log",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "addDetails": false,
+                "usePrint": false,
+                "message": "=string.concat(\"retrieve marble \", $flow.name, \" by client \", $flow.cid.cn)"
+              }
+            }
+          },
+          {
+            "id": "get_3",
+            "name": "Get",
+            "description": "This activity fetches data by key from fabric ledger",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "key": "=$flow.name"
+              }
+            }
+          },
+          {
+            "id": "log_4",
+            "name": "Log (2)",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "message": "=string.concat(\"[GET] \", $activity[get_3].key, \" = \", $activity[get_3].message)",
+                "addDetails": false,
+                "usePrint": false
+              }
+            }
+          },
+          {
+            "id": "actreturn_5",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": "=$activity[get_3].code",
+                  "returns": "=coerce.toString($activity[get_3].result)",
+                  "message": "=$activity[get_3].message"
+                }
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "log_2",
+            "to": "get_3"
+          },
+          {
+            "from": "get_3",
+            "to": "log_4"
+          },
+          {
+            "from": "log_4",
+            "to": "actreturn_5"
+          }
+        ]
+      }
+    }
+  ]
+}
