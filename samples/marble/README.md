@@ -1,6 +1,6 @@
 # marble
 
-This example uses the [Open-source Flogo](http://www.flogo.io/) to implement the [Hyperledger Fabric](https://www.hyperledger.org/projects/fabric) sample chaincode [marbles02](https://github.com/hyperledger/fabric-samples/tree/master/chaincode/marbles02/go). It demonstrates basic features of the Hyperledger Fabric, including creeation and update of states and composite-keys, and different types of queries for state and history with pagination. The chaincode is implemented visually by using [Flogo Web UI](https://github.com/project-flogo/flogo-web).
+This example uses the [Open-source Flogo](http://www.flogo.io/) to implement a [Hyperledger Fabric](https://www.hyperledger.org/projects/fabric) sample chaincode [marbles02](https://github.com/hyperledger/fabric-samples/tree/master/chaincode/marbles02/go). The sample demonstrates basic features of the Hyperledger Fabric, including creeation and update of states and composite-keys, as well as different types of queries for state and history with pagination. The chaincode is implemented visually by using [Flogo Web UI](https://github.com/project-flogo/flogo-web).
 
 ## Prerequisite
 
@@ -15,7 +15,7 @@ The Flogo model [marble.json](./marble.json) is the chaincode implementation. In
 
 ## Start test-network and test chaincode
 
-Execute following steps to start the Fabric test-network and invoke the **marble_cc** chaincode:
+Execute following steps to start the **Fabric test-network** and invoke the **marble_cc** chaincode:
 
 ```bash
 # start Fabric test-network
