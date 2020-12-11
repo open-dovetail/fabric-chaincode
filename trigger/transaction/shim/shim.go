@@ -10,14 +10,7 @@ import (
 	trigger "github.com/open-dovetail/fabric-chaincode/trigger/transaction"
 	_ "github.com/project-flogo/core/data/expression/script"
 	"github.com/project-flogo/core/data/schema"
-	"github.com/project-flogo/core/engine"
 	"github.com/project-flogo/core/support/log"
-)
-
-var (
-	cfgJson       string
-	cfgEngine     string
-	cfgCompressed bool
 )
 
 // Contract implements chaincode interface for invoking Flogo flows
@@ -27,6 +20,15 @@ type Contract struct {
 var logger = log.ChildLogger(log.RootLogger(), "fabric-transaction-shim")
 
 func init() {
+	os.Setenv("FLOGO_RUNNER_TYPE", "DIRECT")
+	os.Setenv("FLOGO_ENGINE_STOP_ON_ERROR", "false")
+
+	// necessary to access schema of complex object attributes from activity context
+	schema.Enable()
+	schema.DisableValidation()
+}
+
+func setLogLevel() {
 	//  get log level from env FLOGO_LOG_LEVEL or CORE_CHAINCODE_LOGGING_LEVEL
 	logLevel := "DEBUG"
 	if l, ok := os.LookupEnv("FLOGO_LOG_LEVEL"); ok {
@@ -74,25 +76,7 @@ func (t *Contract) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 
 // main function starts up chaincode in the container during instantiate
 func main() {
-
-	os.Setenv("FLOGO_RUNNER_TYPE", "DIRECT")
-	os.Setenv("FLOGO_ENGINE_STOP_ON_ERROR", "false")
-
-	// necessary to access schema of complex object attributes from activity context
-	schema.Enable()
-	schema.DisableValidation()
-
-	cfg, err := engine.LoadAppConfig(cfgJson, cfgCompressed)
-	if err != nil {
-		logger.Errorf("Failed to load flogo config: %s", err.Error())
-		os.Exit(1)
-	}
-
-	_, err = engine.New(cfg, engine.ConfigOption(cfgEngine, cfgCompressed))
-	if err != nil {
-		logger.Errorf("Failed to create flogo engine instance: %+v", err)
-		os.Exit(1)
-	}
+	setLogLevel()
 
 	if err := shim.Start(new(Contract)); err != nil {
 		fmt.Printf("Error starting chaincode: %s", err)
