@@ -54,7 +54,7 @@
                             "actions": [{
                                 "activity": "#error",
                                 "terminate": true,
-                                "code": 500,
+                                "code": 400,
                                 "input": {
                                     "message": "user is not authorized to create marble"
                                 }
@@ -109,7 +109,7 @@
                             "actions": [{
                                 "activity": "#error",
                                 "terminate": true,
-                                "code": 500,
+                                "code": 400,
                                 "input": {
                                     "message": "user is not authorized to execute the query"
                                 }
@@ -124,7 +124,7 @@
                                 "activity": "#query",
                                 "terminate": true,
                                 "config": {
-                                    "query": "{ \"selector\": { \"docType\": \"marble\",\"owner\": \"$owner\" } }"
+                                    "query": "{ \"selector\": { \"docType\": \"marble\", \"owner\": \"$owner\" } }"
                                 },
                                 "input": {
                                     "owner": "=$.owner"
