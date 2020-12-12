@@ -124,7 +124,7 @@
                                 "activity": "#query",
                                 "terminate": true,
                                 "config": {
-                                    "query": "query statement that uses owner as input parameter"
+                                    "query": "{ \"selector\": { \"docType\": \"marble\",\"owner\": \"$owner\" } }"
                                 },
                                 "input": {
                                     "owner": "=$.owner"
