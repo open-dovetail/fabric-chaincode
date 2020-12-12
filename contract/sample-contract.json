@@ -3,6 +3,15 @@
         "title": "Sample contract API",
         "version": "v0.0.1"
     },
+    "imports": [
+        "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+        "github.com/open-dovetail/dovetail-contrib/activity/jsonmapper",
+        "github.com/open-dovetail/fabric-chaincode/activity/get",
+        "github.com/open-dovetail/fabric-chaincode/activity/put",
+        "github.com/open-dovetail/fabric-chaincode/activity/query",
+        "github.com/open-dovetail/fabric-chaincode/activity/gethistory",
+        "github.com/project-flogo/contrib/activity/error"
+    ],
     "contracts": {
         "demo-contract": {
             "name": "Marble Exchange",
@@ -37,23 +46,16 @@
                         "$ref": "#/components/schemas/marble"
                     },
                     "rules": [{
-                            "description": "extract client ID from request context",
-                            "actions": [{
-                                "activity": "cid",
-                                "name": "client"
-                            }]
-                        },
-                        {
                             "description": "reject request if client is not exchange admin",
                             "condition": {
-                                "prerequisite": "client",
-                                "expr": "$client.data.role != \"admin\""
+                                "description": "client is not admin",
+                                "expr": "$.cid.role != \"admin\""
                             },
                             "actions": [{
-                                "activity": "error",
+                                "activity": "#error",
                                 "terminate": true,
+                                "code": 500,
                                 "input": {
-                                    "code": 500,
                                     "message": "user is not authorized to create marble"
                                 }
                             }]
@@ -61,25 +63,23 @@
                         {
                             "description": "create or update ledger state",
                             "condition": {
-                                "prerequisite": "client"
+                                "description": "client is admin"
                             },
                             "actions": [{
-                                    "activity": "mapper",
+                                    "activity": "#jsonmapper",
                                     "name": "mapper",
                                     "input": {
-                                        "docType": "marble",
-                                        "name": "=$.name",
-                                        "color": "=$.color",
-                                        "size": "=$.size",
-                                        "owner": "=$.owner"
+                                        "data": {
+                                            "$ref": "#/components/schemas/marble"
+                                        }
                                     }
                                 },
                                 {
-                                    "activity": "put",
+                                    "activity": "#put",
                                     "terminate": true,
                                     "input": {
                                         "key": "=$.name",
-                                        "data": "=$mapper.data"
+                                        "data": "=$mapper.result"
                                     }
                                 }
                             ]
@@ -101,23 +101,16 @@
                         }
                     },
                     "rules": [{
-                            "description": "extract client ID from request context",
-                            "actions": [{
-                                "activity": "cid",
-                                "name": "client"
-                            }]
-                        },
-                        {
                             "description": "reject request if client is not the owner",
                             "condition": {
-                                "prerequisite": "client",
-                                "expr": "$client.data.name != $.owner"
+                                "description": "client name does not match marble owner",
+                                "expr": "$.cid.name != $.owner"
                             },
                             "actions": [{
-                                "activity": "error",
+                                "activity": "#error",
                                 "terminate": true,
+                                "code": 500,
                                 "input": {
-                                    "code": 500,
                                     "message": "user is not authorized to execute the query"
                                 }
                             }]
@@ -125,11 +118,14 @@
                         {
                             "description": "query the ledger state",
                             "condition": {
-                                "prerequisite": "client"
+                                "description": "client name matches marble owner"
                             },
                             "actions": [{
-                                "activity": "query",
+                                "activity": "#query",
                                 "terminate": true,
+                                "config": {
+                                    "query": "query statement that uses owner as input parameter"
+                                },
                                 "input": {
                                     "owner": "=$.owner"
                                 }
@@ -154,10 +150,10 @@
                     "rules": [{
                         "description": "retrieve ledger history of a specified marble",
                         "actions": [{
-                            "activity": "gethistory",
+                            "activity": "#gethistory",
                             "terminate": true,
                             "input": {
-                                "name": "=$.name"
+                                "key": "=$.name"
                             }
                         }]
                     }]

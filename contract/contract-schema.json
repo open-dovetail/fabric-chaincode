@@ -10,6 +10,13 @@
         "info": {
             "$ref": "#/definitions/info"
         },
+        "imports": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "description": "URL of Flogo trigger and activities referenced by the rule actions"
+            }
+        },
         "contracts": {
             "type": "object",
             "patternProperties": {
@@ -365,12 +372,16 @@
             "type": "object",
             "description": "precondition before executing a sequence of operations for a transaction",
             "required": [
-                "prerequisite"
+                "description"
             ],
             "properties": {
                 "name": {
                     "type": "string",
                     "description": "user-friendly name for display. It must be unique in scope of a transaction if specified."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "explains business logic of the condition"
                 },
                 "prerequisite": {
                     "type": "string",
@@ -392,7 +403,7 @@
             "properties": {
                 "activity": {
                     "type": "string",
-                    "description": "type of the operation to be executed, e.g., 'put' for updating a ledger state"
+                    "description": "ref of the activity to all, e.g., '#put' is the ref of imported activity for updating a ledger state"
                 },
                 "description": {
                     "type": "string",
@@ -406,6 +417,10 @@
                     "type": "boolean",
                     "description": "true if return the result of this operation and terminate the transaction. false if not specified."
                 },
+                "code": {
+                    "type": "integer",
+                    "description": "return status code if it is a terminating activity"
+                },
                 "config": {
                     "type": "object",
                     "description": "config data mapping expressions for the operation activity",
@@ -417,10 +432,26 @@
                 },
                 "input": {
                     "type": "object",
-                    "description": "input data mapping expressions for the operation activity",
+                    "description": "input data mapping expressions and/or input data schema for the operation activity",
                     "patternProperties": {
                         "^.*$": {
-                            "type": "string"
+                            "anyOf": [{
+                                    "$ref": "#/definitions/schema"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "boolean"
+                                }
+                            ],
+                            "default": ""
                         }
                     }
                 }
