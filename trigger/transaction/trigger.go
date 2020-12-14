@@ -108,9 +108,7 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 
 	// extract client ID
 	triggerData := &Output{}
-	if client, err := singleton.extractCID(stub); err == nil {
-		triggerData.CID = client
-	}
+	triggerData.CID = singleton.extractCID(stub)
 
 	// construct transaction parameters
 	paramData, err := prepareParameters(singleton.arguments[fn], args)
@@ -178,16 +176,19 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 	return 200, reply.Returns, nil
 }
 
-func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]string, error) {
+func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) map[string]string {
 	// get client identity
+	client := make(map[string]string)
 	c, err := cid.New(stub)
 	if err != nil {
-		logger.Errorf("failed to extract client identity from stub: %+v\n", err)
-		return nil, errors.Wrap(err, "failed to extract client identity from stub")
+		logger.Warnf("error in extractCID(): %v\n", err)
+		client["id"] = "unknown"
+		client["mspid"] = "unknown"
+		client["cn"] = "unknown"
+		return client
 	}
 
 	// retrieve data from client identity
-	client := make(map[string]string)
 	if id, err := c.GetID(); err == nil {
 		client["id"] = id
 	}
@@ -207,7 +208,7 @@ func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) (map[string]strin
 			}
 		}
 	}
-	return client, nil
+	return client
 }
 
 // construct trigger output transient attributes
