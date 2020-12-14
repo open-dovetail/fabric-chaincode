@@ -79,7 +79,7 @@ func (t *Trigger) Initialize(ctx trigger.InitContext) error {
 		}
 		t.handlers[setting.Name] = handler
 		t.arguments[setting.Name] = setting.Arguments
-		logger.Infof("transaction %s accepts arguments %v", setting.Name, setting.Arguments)
+		logger.Debugf("transaction %s accepts arguments %v", setting.Name, setting.Arguments)
 	}
 	return nil
 }

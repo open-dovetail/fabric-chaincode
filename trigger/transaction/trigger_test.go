@@ -50,20 +50,20 @@ func TestHandlerSettings(t *testing.T) {
 	assert.Equal(t, "(color:string)", fmt.Sprint(setting.Arguments[0]))
 }
 
-type noOpAction struct {
+type mockAction struct {
 }
 
-func (a *noOpAction) IOMetadata() *metadata.IOMetadata {
+func (a *mockAction) IOMetadata() *metadata.IOMetadata {
 	return nil
 }
 
 // Metadata get the Action's metadata
-func (a *noOpAction) Metadata() *action.Metadata {
+func (a *mockAction) Metadata() *action.Metadata {
 	return nil
 }
 
 // Run implementation of action.SyncAction.Run to test expected trigger inputs
-func (a *noOpAction) Run(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
+func (a *mockAction) Run(ctx context.Context, inputs map[string]interface{}) (map[string]interface{}, error) {
 	// replace stub description for JSON serialization
 	if stub, ok := inputs[common.FabricStub]; ok && stub != nil {
 		inputs[common.FabricStub] = fmt.Sprintf("%v", stub)
@@ -132,7 +132,7 @@ func TestTriggerEval(t *testing.T) {
 	assert.Nil(t, err, "unmarshal of trigger config should not throw error")
 
 	fac := new(Factory)
-	act := new(noOpAction)
+	act := new(mockAction)
 	acts := map[string]action.Action{"test": act}
 	trig, err := test.InitTrigger(fac, &trigConfig, acts)
 	assert.Nil(t, err, "initialize trigger should not throw error")
