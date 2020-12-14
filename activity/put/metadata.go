@@ -34,6 +34,7 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 	if keys == nil || len(keys) == 0 {
 		return nil
 	}
+	h.CompositeKeys = make(map[string][]string)
 	for k, v := range keys {
 		var fields []string
 		values, err := coerce.ToArray(v)

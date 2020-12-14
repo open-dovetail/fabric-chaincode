@@ -11,7 +11,7 @@ replace go.uber.org/multierr => go.uber.org/multierr v1.6.0
 require (
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20200728190242-9b3ae92d8664
 	github.com/hyperledger/fabric-protos-go v0.0.0-20201028172056-a3136dde2354
-	github.com/open-dovetail/fabric-chaincode/common v0.0.2
+	github.com/open-dovetail/fabric-chaincode/common v0.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/project-flogo/core v1.2.0
 	github.com/stretchr/testify v1.6.1

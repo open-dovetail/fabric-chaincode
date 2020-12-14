@@ -181,7 +181,7 @@ func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) map[string]string
 	client := make(map[string]string)
 	c, err := cid.New(stub)
 	if err != nil {
-		logger.Warnf("error in extractCID(): %v\n", err)
+		logger.Warnf("extractCID(): %v\n", err)
 		client["id"] = "unknown"
 		client["mspid"] = "unknown"
 		client["cn"] = "unknown"

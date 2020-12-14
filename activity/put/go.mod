@@ -10,7 +10,7 @@ replace go.uber.org/multierr => go.uber.org/multierr v1.6.0
 
 require (
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20201119163726-f8ef75b17719
-	github.com/open-dovetail/fabric-chaincode/common v0.0.3
+	github.com/open-dovetail/fabric-chaincode/common v0.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/project-flogo/core v1.2.0
 	github.com/stretchr/testify v1.6.1

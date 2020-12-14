@@ -135,7 +135,7 @@ func (a *Activity) storeData(ctx activity.Context, ccshim shim.ChaincodeStubInte
 
 	// store data on the ledger
 	if err := ccshim.PutState(input.StateKey, jsonBytes); err != nil {
-		logger.Errorf("failed to store data on ledger: %+v\n", err)
+		logger.Errorf("failed to store data on ledger %s=>%s: %+v\n", input.StateKey, input.StateData, err)
 		output := &Output{Code: 500, Message: "failed to store data on ledger"}
 		ctx.SetOutputObject(output)
 		return false, errors.Wrapf(err, output.Message)
