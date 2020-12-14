@@ -37,25 +37,23 @@ var logger = log.ChildLogger(log.RootLogger(), "fabric-chaincode-common")
 
 // GetChaincodeStub returns Fabric chaincode stub from the activity context
 func GetChaincodeStub(ctx activity.Context) (shim.ChaincodeStubInterface, error) {
-	// get chaincode stub
-	if taskInst, ok := ctx.(*instance.TaskInst); ok {
-		flowInst := taskInst.ActivityHost().(*instance.Instance)
-		scope := flowInst.GetMasterScope()
-		logger.Debugf("flow scope: %+v", scope)
-
-		if stub, exists := scope.GetValue(FabricStub); exists && stub != nil {
-			ccshim, found := stub.(shim.ChaincodeStubInterface)
-			if !found {
-				logger.Errorf("stub type %T is not a ChaincodeStubInterface\n", stub)
-				return nil, errors.Errorf("stub type %T is not a ChaincodeStubInterface", stub)
-			}
-			return ccshim, nil
-		}
-		logger.Error("no stub found in flow scope")
-		return nil, errors.New("no stub found in flow scope")
+	// get chaincode stub - protect call to GetMasterScope to support unit test with mock
+	scope := ctx.ActivityHost().Scope()
+	if inst, ok := scope.(*instance.Instance); ok {
+		scope = inst.GetMasterScope()
 	}
-	logger.Errorf("ctx is not a TaskInst: %+v", ctx)
-	return nil, errors.Errorf("ctx is not a TaskInst: %+v", ctx)
+	logger.Debugf("flow scope: %+v", scope)
+
+	if stub, exists := scope.GetValue(FabricStub); exists && stub != nil {
+		ccshim, found := stub.(shim.ChaincodeStubInterface)
+		if !found {
+			logger.Errorf("stub type %T is not a ChaincodeStubInterface\n", stub)
+			return nil, errors.Errorf("stub type %T is not a ChaincodeStubInterface", stub)
+		}
+		return ccshim, nil
+	}
+	logger.Error("no stub found in flow scope")
+	return nil, errors.New("no stub found in flow scope")
 }
 
 // GetActivityInputSchema returns schema of an activity input attribute
