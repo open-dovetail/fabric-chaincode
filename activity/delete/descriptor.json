@@ -1,0 +1,49 @@
+{
+    "name": "fabric-delete",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Delete",
+    "description": "This activity deletes a state and/or composite keys",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/activity/delete",
+    "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/delete",
+    "settings": [{
+            "name": "compositeKeys",
+            "type": "object",
+            "description": "composite keys to be deleted and corresponding field names in a map[string][]string, e.g. {index1: [attr1,attr2]} (Note: if state key does not match the value of the last attribute of an index, the state-key will be appended to the end of the index)"
+        },
+        {
+            "name": "keysOnly",
+            "type": "boolean",
+            "description": "Delete specified composite keys only, not the state."
+        }
+    ],
+    "inputs": [{
+            "name": "data",
+            "type": "any",
+            "required": true,
+            "description": "keys or JSON objects that specify query parameters"
+        },
+        {
+            "name": "privateCollection",
+            "type": "string",
+            "description": "name of private collection, or blank if not private data"
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer",
+            "description": "status code, e.g., 200 if successful"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "serialized JSON string of the deleted records, or error message"
+        },
+        {
+            "name": "result",
+            "type": "array",
+            "description": "keys and JSON object values corresponding to the delted states or composite keys"
+        }
+    ]
+}

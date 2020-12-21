@@ -7,17 +7,46 @@
     "author": "Yueming Xu",
     "ref": "github.com/open-dovetail/fabric-chaincode/activity/get",
     "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/get",
-    "inputs": [{
-            "name": "key",
+    "settings": [{
+            "name": "keyName",
             "type": "string",
+            "description": "name of the composite key used to retrieve data"
+        },
+        {
+            "name": "attributes",
+            "type": "array",
+            "description": "list of json-path for attributes used to construct composite key"
+        },
+        {
+            "name": "query",
+            "type": "object",
+            "description": "Rich query statement with parameters prefixed by '$', e.g. {\r\n  \"selector\": {\r\n  \"docType\":\"marble\",\r\n  \"owner\":\"$owner\"\r\n  }\r\n}"
+        },
+        {
+            "name": "keysOnly",
+            "type": "boolean",
+            "description": "Fetch specified composite keys only, not the state."
+        }
+    ],
+    "inputs": [{
+            "name": "data",
+            "type": "any",
             "required": true,
-            "description": "state key of the record to fetch from ledger"
+            "description": "keys or JSON objects that specify query parameters"
         },
         {
             "name": "privateCollection",
             "type": "string",
-            "required": false,
             "description": "name of private collection, or blank if not private data"
+        },
+        {
+            "name": "pageSize",
+            "type": "number",
+            "description": "number of records in a page if use pagination, or 0 to return all records"
+        }, {
+            "name": "bookmark",
+            "type": "string",
+            "description": "starting bookmark for this page if use pagination"
         }
     ],
     "outputs": [{
@@ -28,17 +57,17 @@
         {
             "name": "message",
             "type": "string",
-            "description": "serialized result string, or error message"
+            "description": "serialized JSON string of the result, or error message"
         },
         {
-            "name": "key",
+            "name": "bookmark",
             "type": "string",
-            "description": "state key of the returned record"
+            "description": "bookmark for next page when pagination is used"
         },
         {
             "name": "result",
-            "type": "object",
-            "description": "the parsed JSON object corresponding to the record from ledger"
+            "type": "array",
+            "description": "keys and JSON object values corresponding to the retrieved states or composite keys"
         }
     ]
 }

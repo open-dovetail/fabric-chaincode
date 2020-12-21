@@ -1,0 +1,100 @@
+==========================
+Get (one or more composite keys or ledger states)
+
+Config:
+- 0 or more composite key definitions
+- KeysOnly bool
+
+Input:
+- one or array of keys (state-key or composite-key)
+- one or array of data objects for constructing composite keys
+
+Returns:
+If no key is specified:
+    Construct composite-keys from input data objects and composite-key definitions,
+    For each constructed composite keys, retrieve data as follows.
+
+If one or more keys are specified:
+    For state-keys:
+        If KeysOnly is true:
+            Retrieve corresponding states and return constructed composite-keys
+        If KeysOnly is false:
+            Return corresponding state data for the keys
+    For composite-keys:
+        If KeysOnly is true:
+            Execute partial-key query, and return resulting composite-keys
+        If KeysOnly is false:
+            Execute partial-key query, then retrieve and return corresponding state data
+
+==========================
+Put (one or more composite keys or ledger states)
+
+Config:
+- 0 or more composite key definitions
+- KeysOnly bool
+- CreateOnly bool
+
+Input:
+- one or array of key-value pairs
+- one or array of data objects
+
+Results:
+If KeysOnly is true:
+    If input is composite-key string:
+        Store and return the composite key
+    If input is data object:
+        Construct composite key from data object, and store and return the composite key
+If KeysOnly is false:
+    If input is key-value pair:
+        If UpdateOnly is false:
+            Update ledger with the state-key and value
+            Construct and create composite keys
+        If UpdateOnly is true:
+            Update ledger and composite keys only if state-key does not already exist
+
+==========================
+Delete (one or more composite keys or ledger states)
+
+Config:
+- 0 or more composite key definitions
+- KeysOnly bool
+
+Input:
+- one or array of keys (state-key or composite-key)
+- one or array of data objects for constructing composite keys
+
+Results:
+If no key is specified:
+    Construct composite-keys from input data objects and composite-key definitions,
+    For each constructed composite keys, delete data as follows.
+
+If one or more keys are specified:
+    For state-keys:
+        If KeysOnly is true:
+            Retrieve corresponding states and delete corresponding composite-keys
+        If KeysOnly is false:
+            delete corresponding state data and composite keys
+    For composite-keys:
+        If KeysOnly is true:
+            Execute partial-key query, and delete resulting composite-keys
+        If KeysOnly is false:
+            Execute partial-key query, then delete return state data and composite keys
+
+==========================
+Define composite-key:
+- key name
+- key attributes using dot-expression to define field in input JSON object
+
+==========================
+Status code:
+200 OK
+201 Created (PUT when createOnly=true)
+206 Partial Content (e.g., paged result, or not all PUT succeeded)
+
+400 Bad Request
+403 Forbidden (user authenticated but not authorized)
+404 Not Found (query result is empty)
+409 Conflict (cannot create when createOnly=true)
+
+500 Internal Server Error
+501 Not Implemented (e.g., transaction name not found)

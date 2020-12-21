@@ -1,50 +1,65 @@
 package put
 
 import (
+	"strings"
+
 	"github.com/project-flogo/core/data/coerce"
 )
 
 // Settings of the activity
 type Settings struct {
 	CompositeKeys map[string][]string `md:"compositeKeys"`
+	KeysOnly      bool                `md:"keysOnly"`
+	CreateOnly    bool                `md:"createOnly"`
 }
 
 // Input of the activity
 type Input struct {
-	StateKey          string `md:"key,required"`
-	StateData         string `md:"data,required"`
-	PrivateCollection string `md:"privateCollection"`
+	Data              interface{} `md:"data,required"`
+	PrivateCollection string      `md:"privateCollection"`
 }
 
 // Output of the activity
 type Output struct {
-	Code     int                    `md:"code"`
-	Message  string                 `md:"message"`
-	StateKey string                 `md:"key"`
-	Result   map[string]interface{} `md:"result"`
+	Code    int           `md:"code"`
+	Message string        `md:"message"`
+	Result  []interface{} `md:"result"`
 }
 
 // FromMap sets settings from a map
 // construct composite key definition of format {"index": ["field1, "field2"]}
 func (h *Settings) FromMap(values map[string]interface{}) error {
+	var err error
+	if h.KeysOnly, err = coerce.ToBool(values["keysOnly"]); err != nil {
+		return err
+	}
+	if h.CreateOnly, err = coerce.ToBool(values["createOnly"]); err != nil {
+		return err
+	}
+
 	keys, err := coerce.ToObject(values["compositeKeys"])
 	if err != nil {
 		return err
 	}
-	if keys == nil || len(keys) == 0 {
+	if len(keys) == 0 {
 		return nil
 	}
 	h.CompositeKeys = make(map[string][]string)
 	for k, v := range keys {
 		var fields []string
 		values, err := coerce.ToArray(v)
-		if err != nil || values == nil || len(values) == 0 {
-			logger.Warnf("ignored composite key setting for index %s. error: %+v", k, err)
+		if err != nil || len(values) == 0 {
+			logger.Warnf("ignored composite key setting for key %s. error: %+v", k, err)
 			continue
 		}
 		for _, n := range values {
 			if f, ok := n.(string); ok && len(f) > 0 {
-				fields = append(fields, f)
+				path := f
+				if !strings.HasPrefix(f, "$.") {
+					// make it valid JsonPath expression
+					path = "$." + f
+				}
+				fields = append(fields, path)
 			}
 		}
 		if len(fields) > 0 {
@@ -58,8 +73,7 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 // ToMap converts activity input to a map
 func (i *Input) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"key":               i.StateKey,
-		"data":              i.StateData,
+		"data":              i.Data,
 		"privateCollection": i.PrivateCollection,
 	}
 }
@@ -68,10 +82,7 @@ func (i *Input) ToMap() map[string]interface{} {
 func (i *Input) FromMap(values map[string]interface{}) error {
 
 	var err error
-	if i.StateKey, err = coerce.ToString(values["key"]); err != nil {
-		return err
-	}
-	if i.StateData, err = coerce.ToString(values["data"]); err != nil {
+	if i.Data, err = coerce.ToAny(values["data"]); err != nil {
 		return err
 	}
 	if i.PrivateCollection, err = coerce.ToString(values["privateCollection"]); err != nil {
@@ -86,7 +97,6 @@ func (o *Output) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"code":    o.Code,
 		"message": o.Message,
-		"key":     o.StateKey,
 		"result":  o.Result,
 	}
 }
@@ -101,10 +111,7 @@ func (o *Output) FromMap(values map[string]interface{}) error {
 	if o.Message, err = coerce.ToString(values["message"]); err != nil {
 		o.Message = ""
 	}
-	if o.StateKey, err = coerce.ToString(values["key"]); err != nil {
-		return err
-	}
-	if o.Result, err = coerce.ToObject(values["result"]); err != nil {
+	if o.Result, err = coerce.ToArray(values["result"]); err != nil {
 		return err
 	}
 

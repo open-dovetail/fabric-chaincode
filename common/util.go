@@ -4,18 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"sort"
 
 	"github.com/pkg/errors"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
+	pb "github.com/hyperledger/fabric-protos-go/peer"
+	"github.com/oliveagle/jsonpath"
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/expression"
 	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/data/schema"
 	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/flow/instance"
-	jschema "github.com/xeipuuv/gojsonschema"
 )
 
 const (
@@ -23,6 +23,8 @@ const (
 	KeyField = "key"
 	// ValueField attribute used in query response of key-value pairs
 	ValueField = "value"
+	// ValueDeleted marks a deleted Fabric state
+	ValueDeleted = "isDeleted"
 	// FabricStub is the name of flow property for passing chaincode stub to activities
 	FabricStub = "_chaincode_stub"
 	// FabricTxID is the name of flow property for passing auto-generated transaction ID to activities
@@ -31,6 +33,8 @@ const (
 	FabricTxTime = "txTime"
 	// FabricCID is the name of flow property for passing client ID to activities
 	FabricCID = "cid"
+
+	compositeKeyNamespace = "\x00"
 )
 
 var logger = log.ChildLogger(log.RootLogger(), "fabric-chaincode-common")
@@ -99,111 +103,9 @@ func ResolveFlowData(toResolve string, context activity.Context) (value interfac
 	return actValue, err
 }
 
-// ParameterIndex stores transaction parameters and its location in raw JSON schema string
-// start and end location is used to sort the parameter list to match the parameter order in schema
-type ParameterIndex struct {
-	Name     string
-	JSONType string
-	start    int
-	end      int
-}
-
-// addIndex adds a new parameter position to the index, ignore or merge index if index region overlaps.
-func addIndex(parameters []ParameterIndex, param ParameterIndex) []ParameterIndex {
-	for i, v := range parameters {
-		if param.start > v.start && param.start < v.end {
-			// ignore if new param's start postion falls in region covered by a known parameter
-			return parameters
-		} else if v.start > param.start && v.start < param.end {
-			// replace old parameter region if its start position falls in the region covered by the new parameter
-			updated := append(parameters[:i], param)
-			if len(parameters) > i+1 {
-				// check the remaining knonw parameters
-				for _, p := range parameters[i+1:] {
-					if !(p.start > param.start && p.start < param.end) {
-						updated = append(updated, p)
-					}
-				}
-			}
-			return updated
-		}
-	}
-	// append new parameter
-	return append(parameters, param)
-}
-
-// OrderedParameters returns parameters of a JSON schema object sorted by their position in schema definition
-// This is necessary because Golang JSON parser does not maintain the sequence of object parameters.
-func OrderedParameters(schemaData []byte) ([]ParameterIndex, error) {
-	if schemaData == nil || len(schemaData) == 0 {
-		logger.Debug("schema data is empty")
-		return nil, nil
-	}
-	// extract root object properties from JSON schema
-	var rawProperties struct {
-		Data json.RawMessage `json:"properties"`
-	}
-	if err := json.Unmarshal(schemaData, &rawProperties); err != nil {
-		logger.Errorf("failed to extract properties from metadata: %+v", err)
-		return nil, err
-	}
-
-	// extract parameter names from raw object properties
-	var params map[string]json.RawMessage
-	if err := json.Unmarshal(rawProperties.Data, &params); err != nil {
-		logger.Errorf("failed to extract parameters from object schema: %+v", err)
-		return nil, err
-	}
-
-	// collect parameter locations in the raw object schema
-	var paramIndex []ParameterIndex
-	for p, v := range params {
-		// encode parameter name with quotes
-		key, _ := json.Marshal(p)
-		// key may exist in raw schema multiple times,
-		// so check each occurence to determine its correct location in the raw schema
-		items := bytes.Split(rawProperties.Data, key)
-		pos := 0
-		for _, seg := range items {
-			if pos == 0 {
-				// first segment should not be the key definition
-				pos += len(seg)
-				continue
-			}
-			vpos := bytes.Index(seg, v)
-			if vpos >= 0 {
-				// the segment contains the key definition, so collect its position in raw schema
-				endPos := pos + len(key) + vpos + len(v)
-				// extract JSON type of the parameter
-				var paramDef struct {
-					RawType string `json:"type"`
-				}
-				if err := json.Unmarshal(v, &paramDef); err != nil {
-					logger.Errorf("failed to extract JSON type of parameter %s: %+v", p, err)
-				}
-				paramType := jschema.TYPE_OBJECT
-				if paramDef.RawType != "" {
-					paramType = paramDef.RawType
-				}
-				logger.Debugf("add index parameter '%s' type '%s'\n", p, paramType)
-				paramIndex = addIndex(paramIndex, ParameterIndex{Name: p, JSONType: paramType, start: pos, end: endPos})
-			}
-			pos += len(key) + len(seg)
-		}
-	}
-
-	// sort parameter index by start location in raw schema
-	if len(paramIndex) > 1 {
-		sort.Slice(paramIndex, func(i, j int) bool {
-			return paramIndex[i].start < paramIndex[j].start
-		})
-	}
-	return paramIndex, nil
-}
-
 // ConstructQueryResponse iterate through query result to create array of key-value pairs, i.e.
 // JSON string of format [{"key":"mykey", "value":{}}, ...]
-func ConstructQueryResponse(resultsIterator shim.StateQueryIteratorInterface, collection string, isCompositeKey bool, stub shim.ChaincodeStubInterface) ([]byte, error) {
+func ConstructQueryResponse(stub shim.ChaincodeStubInterface, resultsIterator shim.StateQueryIteratorInterface, collection string, keysOnly bool) ([]byte, error) {
 	var buffer bytes.Buffer
 	buffer.WriteString("[")
 
@@ -215,24 +117,22 @@ func ConstructQueryResponse(resultsIterator shim.StateQueryIteratorInterface, co
 		}
 		key := queryResponse.Key
 		value := queryResponse.Value
-		if isCompositeKey {
-			// get state from composite key
-			_, compositeParts, err := stub.SplitCompositeKey(key)
-			if err != nil {
-				return nil, err
-			}
-			// the last composite attribute must be the state key
-			key = compositeParts[len(compositeParts)-1]
-			if collection == "" {
-				if value, err = stub.GetState(key); err != nil {
-					// ignore key if value does not exist
-					logger.Errorf("failed to retrieve state for key %s: %+v", key, err)
+		if IsCompositeKey(key) {
+			if keysOnly {
+				// collect key data
+				if ck, err := SplitCompositeKey(stub, key); err == nil {
+					if value, err = json.Marshal(ck); err != nil {
+						logger.Warnf("ignore composite key serilization error: %+v", err)
+						continue
+					}
+				} else {
+					logger.Warnf("ignore composite key parsing error: %+v", err)
 					continue
 				}
 			} else {
-				if value, err = stub.GetPrivateData(collection, key); err != nil {
-					// ignore key if value does not exist
-					logger.Errorf("failed to retrieve state for key %s: %+v", key, err)
+				// get state from composite key
+				if key, value, err = GetData(stub, collection, key); err != nil {
+					logger.Warnf("failed to retrieve state for key %s and collection %s: %+v", key, collection, err)
 					continue
 				}
 			}
@@ -266,56 +166,243 @@ func ConstructQueryResponse(resultsIterator shim.StateQueryIteratorInterface, co
 
 // ExtractCompositeKeys collects all valid composite-keys matching composite-key definitions using fields of a value object
 func ExtractCompositeKeys(stub shim.ChaincodeStubInterface, compositeKeyDefs map[string][]string, keyValue string, value interface{}) []string {
-	// verify that value is a map
-	obj, ok := value.(map[string]interface{})
-	if !ok {
-		logger.Debugf("No composite keys because state value is not a map\n")
+	// check arguments
+	if len(compositeKeyDefs) == 0 || value == nil {
+		logger.Debugf("No composite keys because state value is not a non-zero map\n")
 		return nil
 	}
 
-	// check composite keys
-	if len(compositeKeyDefs) > 0 {
-		var compositeKeys []string
-		for keyName, attributes := range compositeKeyDefs {
-			if ck := makeCompositeKey(stub, keyName, attributes, keyValue, obj); ck != "" {
-				compositeKeys = append(compositeKeys, ck)
-			}
+	// construct composite keys
+	var compositeKeys []string
+	for keyName, attributes := range compositeKeyDefs {
+		if ck, _ := MakeCompositeKey(stub, keyName, attributes, keyValue, value); len(ck) > 0 {
+			compositeKeys = append(compositeKeys, ck)
 		}
-		return compositeKeys
 	}
-	logger.Debugf("No composite key is defined")
-	return nil
+	return compositeKeys
 }
 
-// constructs composite key if all specified attributes exist in the value object
-// returns "" if failed to extract any attribute from the value object
-func makeCompositeKey(stub shim.ChaincodeStubInterface, keyName string, attributes []string, keyValue string, value map[string]interface{}) string {
-	if keyName == "" || attributes == nil || len(attributes) == 0 {
+// MakeCompositeKey constructs composite key if all specified attributes exist in the value object
+//   attributes contain JsonPath for fields in value objects
+// returns key, false if key does not include all fields defined in the attributes
+func MakeCompositeKey(stub shim.ChaincodeStubInterface, keyName string, attributes []string, keyValue string, value interface{}) (string, bool) {
+	if len(keyName) == 0 || len(attributes) == 0 {
 		logger.Debugf("invalid composite key definition: name %s attributes %+v\n", keyName, attributes)
-		return ""
+		return "", false
 	}
-	var attrValues []string
-	for _, k := range attributes {
-		if v, ok := value[k]; ok {
-			attrValues = append(attrValues, fmt.Sprintf("%v", v))
-		} else {
-			logger.Debugf("composite key attribute %s is not found in state value\n", k)
-			return ""
-		}
-	}
-	if attrValues == nil || len(attrValues) == 0 {
-		logger.Debug("No composite key attribute found in state value\n")
-		return ""
+	attrValues := ExtractDataAttributes(attributes, value)
+	if len(attrValues) == 0 {
+		logger.Infof("no field specified for composite key %s in data %+v\n", keyName, value)
+		return "", false
 	}
 
-	// the last element of composite key must be the keyValue itself
-	if keyValue != attrValues[len(attrValues)-1] {
-		attrValues = append(attrValues, keyValue)
+	if len(attrValues) >= len(attributes)-1 {
+		//  append the key value if at most 1 attribute missing and key value is not included
+		if len(keyValue) > 0 && keyValue != attrValues[len(attrValues)-1] {
+			attrValues = append(attrValues, keyValue)
+		}
 	}
+
 	compositeKey, err := stub.CreateCompositeKey(keyName, attrValues)
 	if err != nil {
-		logger.Errorf("failed to create composite key %s with values %+v\n", keyName, attrValues)
-		return ""
+		logger.Warnf("failed to create composite key %s with values %+v\n", keyName, attrValues)
+		return "", false
 	}
-	return compositeKey
+	return compositeKey, len(attrValues) >= len(attributes)
+}
+
+// ExtractDataAttributes collects values of specified attributes from a data object for constructing a partial composite key
+func ExtractDataAttributes(attrs []string, data interface{}) []string {
+	if len(attrs) == 0 || data == nil {
+		return nil
+	}
+
+	var values []string
+	for _, f := range attrs {
+		v, err := jsonpath.JsonPathLookup(data, f)
+		if err != nil {
+			logger.Debugf("composite key attribute %s is not found in input data\n", f)
+			break
+		}
+		values = append(values, fmt.Sprintf("%v", v))
+	}
+	return values
+}
+
+// PutData writes key and value to the ledger if 'store' is not specified, or a private data collection specified by 'store'
+func PutData(stub shim.ChaincodeStubInterface, store string, key string, value []byte) error {
+	if len(key) == 0 {
+		return errors.New("key is not specified for Put")
+	}
+
+	// set nil value for composite key
+	var v []byte
+	if IsCompositeKey(key) {
+		v = []byte{0x00}
+	} else if len(value) > 0 {
+		v = value
+	} else {
+		logger.Warn("value of ledger record is nil")
+	}
+
+	// write data to ledger or private data collection
+	if len(store) == 0 {
+		return stub.PutState(key, v)
+	}
+	return stub.PutPrivateData(store, key, v)
+}
+
+// GetData retrieves data by state key from the ledger if 'store' is not specified, or a private data collection specified by 'store'
+func GetData(stub shim.ChaincodeStubInterface, store string, key string) (string, []byte, error) {
+	if len(key) == 0 {
+		return key, nil, errors.New("key is not specified for Get")
+	}
+
+	k := key
+	if IsCompositeKey(key) {
+		// this is a composite key, so extract state key from it
+		if ck, err := SplitCompositeKey(stub, key); err == nil {
+			k = ck.Key
+		}
+	}
+
+	// retrieve data from ledger or private data collection
+	if len(store) == 0 {
+		data, err := stub.GetState(k)
+		return k, data, err
+	}
+	data, err := stub.GetPrivateData(store, k)
+	return k, data, err
+}
+
+// DeleteData deletes a state or a composite key from the ledger if 'store' is not specified, or a private data collection specified by 'store'
+func DeleteData(stub shim.ChaincodeStubInterface, store string, key string) error {
+	if len(key) == 0 {
+		return errors.New("key is not specified for Delete")
+	}
+
+	// delete data from ledger or private data collection
+	if len(store) == 0 {
+		return stub.DelState(key)
+	}
+	return stub.DelPrivateData(store, key)
+}
+
+// GetCompositeKeys retrieves iterator for composite keys from from the ledger if 'store' is not specified, or a private data collection specified by 'store'
+func GetCompositeKeys(stub shim.ChaincodeStubInterface, store string, name string, values []string, pageSize int32, bookmark string) (shim.StateQueryIteratorInterface, *pb.QueryResponseMetadata, error) {
+	if len(name) == 0 || len(values) == 0 {
+		return nil, nil, errors.New("name and attributes are not specified for composite key")
+	}
+
+	// retrieve iterator of composite keys from ledger
+	if len(store) == 0 {
+		if pageSize > 0 {
+			return stub.GetStateByPartialCompositeKeyWithPagination(name, values, pageSize, bookmark)
+		}
+		iter, err := stub.GetStateByPartialCompositeKey(name, values)
+		return iter, nil, err
+	}
+	// ignore pagesize for private data collection
+	iter, err := stub.GetPrivateDataByPartialCompositeKey(store, name, values)
+	return iter, nil, err
+}
+
+// CompositeKey holds components in a composite key
+type CompositeKey struct {
+	Name   string   `json:"name,omitempty"`
+	Fields []string `json:"fields"`
+	Key    string   `json:"key"`
+}
+
+// IsCompositeKey returns true if a key belongs to composite key namespace
+func IsCompositeKey(key string) bool {
+	return key[0] == compositeKeyNamespace[0]
+}
+
+// SplitCompositeKey returns components of a composite key
+func SplitCompositeKey(stub shim.ChaincodeStubInterface, key string) (*CompositeKey, error) {
+	if !IsCompositeKey(key) {
+		return nil, errors.New("key value is not a composite key")
+	}
+
+	name, attrs, err := stub.SplitCompositeKey(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(attrs) == 0 {
+		return nil, errors.New("key value contains no attributes")
+	}
+
+	// the last composite attribute must be the state key
+	stateKey := attrs[len(attrs)-1]
+	return &CompositeKey{
+		Name:   name,
+		Fields: attrs,
+		Key:    stateKey,
+	}, nil
+}
+
+// CompositeKeyBag holds components in composite keys of the same name
+type CompositeKeyBag struct {
+	Name       string          `json:"name"`
+	Attributes []string        `json:"attributes"`
+	Keys       []*CompositeKey `json:"keys"`
+}
+
+// AddCompositeKey adds a new key to the bag
+func (b *CompositeKeyBag) AddCompositeKey(k *CompositeKey) (*CompositeKeyBag, error) {
+	if b.Name != k.Name {
+		return b, errors.Errorf("key name %s does not match bag name %s", k.Name, b.Name)
+	}
+	// save memory by removing redundant data
+	k.Name = ""
+	k.Fields = k.Fields[:len(k.Fields)-1]
+	b.Keys = append(b.Keys, k)
+	return b, nil
+}
+
+// ToMap converts CompositeKeyBag to map[string]interface{}
+func (b *CompositeKeyBag) ToMap() (map[string]interface{}, error) {
+	jsonBytes, err := json.Marshal(b)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]interface{})
+	err = json.Unmarshal(jsonBytes, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, err
+}
+
+// GetDataByRange retrieves iterator for range of state keys from from the ledger if 'store' is not specified, or a private data collection specified by 'store'
+func GetDataByRange(stub shim.ChaincodeStubInterface, store, startKey, endKey string, pageSize int32, bookmark string) (shim.StateQueryIteratorInterface, *pb.QueryResponseMetadata, error) {
+
+	// retrieve iterator of state range from ledger
+	if len(store) == 0 {
+		if pageSize > 0 {
+			return stub.GetStateByRangeWithPagination(startKey, endKey, pageSize, bookmark)
+		}
+		iter, err := stub.GetStateByRange(startKey, endKey)
+		return iter, nil, err
+	}
+	// ignore pagesize for private data collection
+	iter, err := stub.GetPrivateDataByRange(store, startKey, endKey)
+	return iter, nil, err
+}
+
+// GetDataByQuery retrieves iterator for rich query from from the ledger if 'store' is not specified, or a private data collection specified by 'store'
+func GetDataByQuery(stub shim.ChaincodeStubInterface, store, query string, pageSize int32, bookmark string) (shim.StateQueryIteratorInterface, *pb.QueryResponseMetadata, error) {
+
+	// retrieve iterator of state range from ledger
+	if len(store) == 0 {
+		if pageSize > 0 {
+			return stub.GetQueryResultWithPagination(query, pageSize, bookmark)
+		}
+		iter, err := stub.GetQueryResult(query)
+		return iter, nil, err
+	}
+	// ignore pagesize for private data collection
+	iter, err := stub.GetPrivateDataQueryResult(store, query)
+	return iter, nil, err
 }

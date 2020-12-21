@@ -8,6 +8,8 @@ replace github.com/project-flogo/core => github.com/yxuco/core v1.2.1
 
 replace go.uber.org/multierr => go.uber.org/multierr v1.6.0
 
+replace github.com/open-dovetail/fabric-chaincode/common v0.0.4 => /Users/yxu/work/open-dovetail/fabric-chaincode/common
+
 require (
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20200728190242-9b3ae92d8664
 	github.com/open-dovetail/fabric-chaincode/common v0.0.4

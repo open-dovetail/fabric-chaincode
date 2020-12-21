@@ -1,0 +1,37 @@
+{
+    "name": "fabric-gethistory",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Get History",
+    "description": "This activity fetches history of a key from fabric ledger",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/activity/gethistory",
+    "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/gethistory",
+    "inputs": [{
+        "name": "key",
+        "type": "string",
+        "required": true,
+        "description": "state key of the record to be fetched"
+    }],
+    "outputs": [{
+            "name": "code",
+            "type": "integer",
+            "description": "status code, e.g., 200 if successful"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "error message if failed to create JSON string"
+        },
+        {
+            "name": "key",
+            "type": "string",
+            "description": "state key of the fetched history records"
+        },
+        {
+            "name": "result",
+            "type": "array",
+            "description": "array of JSON objects corresponding to history records from ledger"
+        }
+    ]
+}
