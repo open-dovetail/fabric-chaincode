@@ -169,7 +169,7 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 		if reply.Message == "" {
 			reply.Message = "No data returned"
 		}
-		return 300, reply.Message, nil
+		return 404, reply.Message, nil
 	}
 
 	logger.Debugf("Flogo flow returned data: %s", reply.Returns)

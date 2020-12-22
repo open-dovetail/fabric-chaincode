@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -101,67 +100,6 @@ func ResolveFlowData(toResolve string, context activity.Context) (value interfac
 	}
 	logger.Debugf("Resolved value for %s: %T - %+v", toResolve, actValue, actValue)
 	return actValue, err
-}
-
-// ConstructQueryResponse iterate through query result to create array of key-value pairs, i.e.
-// JSON string of format [{"key":"mykey", "value":{}}, ...]
-func ConstructQueryResponse(stub shim.ChaincodeStubInterface, resultsIterator shim.StateQueryIteratorInterface, collection string, keysOnly bool) ([]byte, error) {
-	var buffer bytes.Buffer
-	buffer.WriteString("[")
-
-	isEmpty := true
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-		key := queryResponse.Key
-		value := queryResponse.Value
-		if IsCompositeKey(key) {
-			if keysOnly {
-				// collect key data
-				if ck, err := SplitCompositeKey(stub, key); err == nil {
-					if value, err = json.Marshal(ck); err != nil {
-						logger.Warnf("ignore composite key serilization error: %+v", err)
-						continue
-					}
-				} else {
-					logger.Warnf("ignore composite key parsing error: %+v", err)
-					continue
-				}
-			} else {
-				// get state from composite key
-				if key, value, err = GetData(stub, collection, key); err != nil {
-					logger.Warnf("failed to retrieve state for key %s and collection %s: %+v", key, collection, err)
-					continue
-				}
-			}
-			if value == nil {
-				// ignore nil state
-				logger.Warnf("nil state for key %s", key)
-				continue
-			}
-		}
-		// Add a comma before array members, suppress it for the first array member
-		if !isEmpty {
-			buffer.WriteString(",")
-		}
-		buffer.WriteString("{\"" + KeyField + "\":")
-		buffer.WriteString("\"")
-		buffer.WriteString(key)
-		buffer.WriteString("\"")
-
-		buffer.WriteString(", \"" + ValueField + "\":")
-		// Record is a JSON object, so we write as-is
-		buffer.WriteString(string(value))
-		buffer.WriteString("}")
-		isEmpty = false
-	}
-	if isEmpty {
-		return nil, nil
-	}
-	buffer.WriteString("]")
-	return buffer.Bytes(), nil
 }
 
 // ExtractCompositeKeys collects all valid composite-keys matching composite-key definitions using fields of a value object
