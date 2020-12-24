@@ -66,8 +66,8 @@
         },
         {
             "name": "returns",
-            "type": "string",
-            "description": "returned JSON string that could be an object or array"
+            "type": "any",
+            "description": "returned JSON object or array"
         }
     ]
 }

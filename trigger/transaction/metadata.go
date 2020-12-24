@@ -36,9 +36,9 @@ type Output struct {
 
 // Reply from the trigger
 type Reply struct {
-	Status  int    `md:"status"`
-	Message string `md:"message"`
-	Returns string `md:"returns"`
+	Status  int         `md:"status"`
+	Message string      `md:"message"`
+	Returns interface{} `md:"returns"`
 }
 
 // construct Attribute from map of name and type
@@ -143,7 +143,7 @@ func (r *Reply) FromMap(values map[string]interface{}) error {
 	if r.Message, err = coerce.ToString(values["message"]); err != nil {
 		r.Message = ""
 	}
-	if r.Returns, err = coerce.ToString(values["returns"]); err != nil {
+	if r.Returns, err = coerce.ToAny(values["returns"]); err != nil {
 		return err
 	}
 	return nil

@@ -61,16 +61,10 @@ func (t *Contract) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	fn, args := stub.GetFunctionAndParameters()
 	logger.Debugf("invoke transaction fn=%s, args=%+v", fn, args)
 
-	status, result, err := trigger.Invoke(stub, fn, args)
-	if err != nil {
-		return shim.Error(fmt.Sprintf("failed to execute transaction: %s, error: %+v", fn, err))
-	} else if status == shim.OK {
-		return shim.Success([]byte(result))
-	} else {
-		return pb.Response{
-			Status:  int32(status),
-			Payload: []byte(result),
-		}
+	status, payload := trigger.Invoke(stub, fn, args)
+	return pb.Response{
+		Status:  int32(status),
+		Payload: payload,
 	}
 }
 

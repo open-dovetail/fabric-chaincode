@@ -69,15 +69,10 @@ func (a *mockAction) Run(ctx context.Context, inputs map[string]interface{}) (ma
 		inputs[common.FabricStub] = fmt.Sprintf("%v", stub)
 	}
 	result := make(map[string]interface{})
-	data, err := json.Marshal(inputs)
-	if err != nil {
-		result["status"] = 500
-		result["message"] = err.Error()
-		return result, err
-	}
+
 	result["status"] = 200
 	result["message"] = ""
-	result["returns"] = string(data)
+	result["returns"] = inputs
 	return result, nil
 }
 
@@ -148,12 +143,11 @@ func TestTriggerEval(t *testing.T) {
 	assert.Equal(t, 4, len(args), "initMarble transaction should accept 4 arguments")
 
 	stub := shimtest.NewMockStub("mock", nil)
-	status, returns, err := Invoke(stub, "initMarble", []string{"marble1", "blue", "50", "tom"})
-	assert.Nil(t, err, "trigger invocation should not throw error")
+	status, returns := Invoke(stub, "initMarble", []string{"marble1", "blue", "50", "tom"})
 	assert.Equal(t, 200, status, "trigger status should be 200")
 
 	output := make(map[string]interface{})
-	err = json.Unmarshal([]byte(returns), &output)
+	err = json.Unmarshal(returns, &output)
 	assert.Nil(t, err, "trigger execution result should return a map")
 	assert.True(t, len(output[common.FabricStub].(string)) > 0, "stub should not be nil")
 	cid, ok := output[common.FabricCID].(map[string]interface{})

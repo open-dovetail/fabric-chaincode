@@ -97,13 +97,14 @@ func (t *Trigger) Stop() error {
 
 // Invoke starts the singleton trigger and invokes the action registered in the handler,
 // and returns status code and result as JSON string
-func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, string, error) {
+func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, []byte) {
 	logger.Debugf("fabric.Trigger invokes fn %s with args %+v", fn, args)
 
 	handler, ok := singleton.handlers[fn]
 	if !ok {
 		msg := fmt.Sprintf("Handler not defined for transaction %s", fn)
-		return 400, msg, errors.New(msg)
+		logger.Errorf("%s\n", msg)
+		return 400, []byte(msg)
 	}
 
 	// extract client ID
@@ -113,7 +114,8 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 	// construct transaction parameters
 	paramData, err := prepareParameters(singleton.arguments[fn], args)
 	if err != nil {
-		return 400, err.Error(), err
+		logger.Errorf("%v\n", err)
+		return 400, []byte(err.Error())
 	}
 	if logger.DebugEnabled() {
 		// debug flow data
@@ -125,7 +127,8 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 	// construct transient attributes
 	transData, err := prepareTransient(stub)
 	if err != nil {
-		return 400, err.Error(), err
+		logger.Errorf("%v\n", err)
+		return 400, []byte(err.Error())
 	}
 	if logger.DebugEnabled() {
 		// debug flow data
@@ -151,29 +154,31 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, st
 	results, err := handler.Handle(ctx, triggerData.ToMap())
 	if err != nil {
 		logger.Errorf("flogo flow returned error: %+v", err)
-		return 500, err.Error(), err
+		return 500, []byte(err.Error())
 	}
 
 	// processing reply
 	reply := &Reply{}
 	if err := reply.FromMap(results); err != nil {
-		return 500, err.Error(), err
+		logger.Errorf("failed to transform flow result: %v\n", err)
+		return 500, []byte(err.Error())
 	}
 
-	if reply.Status != 200 {
-		logger.Infof("flogo flow returned status %d with message %s", reply.Status, reply.Message)
-		return reply.Status, reply.Message, nil
-	}
-	if reply.Returns == "" {
+	if reply.Returns == nil {
 		logger.Info("Flogo flow did not return any data")
 		if reply.Message == "" {
 			reply.Message = "No data returned"
 		}
-		return 404, reply.Message, nil
+		return reply.Status, []byte(reply.Message)
 	}
 
 	logger.Debugf("Flogo flow returned data: %s", reply.Returns)
-	return 200, reply.Returns, nil
+	jsonBytes, err := json.Marshal(reply.Returns)
+	if err != nil {
+		logger.Errorf("failed to serialize returned data: %v\n", err)
+		return 500, []byte(err.Error())
+	}
+	return reply.Status, jsonBytes
 }
 
 func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) map[string]string {
