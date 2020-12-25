@@ -5,14 +5,12 @@
   "appModel": "1.1.0",
   "description": "",
   "imports": [
-    "github.com/open-dovetail/dovetail-contrib/activity/jsonmapper",
     "github.com/open-dovetail/fabric-chaincode/activity/delete",
     "github.com/open-dovetail/fabric-chaincode/activity/get",
     "github.com/open-dovetail/fabric-chaincode/activity/gethistory",
     "github.com/open-dovetail/fabric-chaincode/activity/put",
     "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
     "github.com/project-flogo/contrib/activity/actreturn",
-    "github.com/project-flogo/contrib/activity/error",
     "github.com/project-flogo/contrib/activity/log",
     "github.com/project-flogo/contrib/function/coerce",
     "github.com/project-flogo/contrib/function/string",
@@ -22,70 +20,12 @@
     {
       "id": "fabric_transaction",
       "ref": "#transaction",
-      "name": "Fabric Transaction",
+      "name": "FabricTransaction",
       "description": "This trigger executes a Hyperledger Fabric transaction",
       "settings": {
         "cidattrs": null
       },
       "handlers": [
-        {
-          "settings": {
-            "name": "initMarble",
-            "arguments": [
-              {
-                "name": "name"
-              },
-              {
-                "name": "color"
-              },
-              {
-                "name": "size",
-                "type": "integer"
-              },
-              {
-                "name": "owner"
-              }
-            ]
-          },
-          "action": {
-            "ref": "#flow",
-            "settings": {
-              "flowURI": "res://flow:init_marble"
-            },
-            "input": {
-              "parameters": "=$.parameters"
-            },
-            "output": {
-              "message": "=$.message",
-              "returns": "=$.returns",
-              "status": "=$.status"
-            }
-          }
-        },
-        {
-          "settings": {
-            "name": "readMarble",
-            "arguments": [
-              {
-                "name": "name"
-              }
-            ]
-          },
-          "action": {
-            "ref": "#flow",
-            "settings": {
-              "flowURI": "res://flow:read_marble"
-            },
-            "input": {
-              "name": "=$.parameters.name"
-            },
-            "output": {
-              "message": "=$.message",
-              "returns": "=$.returns",
-              "status": "=$.status"
-            }
-          }
-        },
         {
           "settings": {
             "name": "delete",
@@ -112,24 +52,20 @@
         },
         {
           "settings": {
-            "name": "transferMarble",
+            "name": "getHistory",
             "arguments": [
               {
                 "name": "name"
-              },
-              {
-                "name": "newOwner"
               }
             ]
           },
           "action": {
             "ref": "#flow",
             "settings": {
-              "flowURI": "res://flow:transfer_marble"
+              "flowURI": "res://flow:get_history"
             },
             "input": {
-              "name": "=$.parameters.name",
-              "newOwner": "=$.parameters.newOwner"
+              "name": "=$.parameters.name"
             },
             "output": {
               "message": "=$.message",
@@ -158,58 +94,6 @@
             "input": {
               "endKey": "=$.parameters.endKey",
               "startKey": "=$.parameters.startKey"
-            },
-            "output": {
-              "message": "=$.message",
-              "returns": "=$.returns",
-              "status": "=$.status"
-            }
-          }
-        },
-        {
-          "settings": {
-            "name": "transferMarblesBasedOnColor",
-            "arguments": [
-              {
-                "name": "color"
-              },
-              {
-                "name": "newOwner"
-              }
-            ]
-          },
-          "action": {
-            "ref": "#flow",
-            "settings": {
-              "flowURI": "res://flow:transfer_marbles_based_on_color"
-            },
-            "input": {
-              "color": "=$.parameters.color",
-              "newOwner": "=$.parameters.newOwner"
-            },
-            "output": {
-              "message": "=$.message",
-              "returns": "=$.returns",
-              "status": "=$.status"
-            }
-          }
-        },
-        {
-          "settings": {
-            "name": "queryMarblesByOwner",
-            "arguments": [
-              {
-                "name": "owner"
-              }
-            ]
-          },
-          "action": {
-            "ref": "#flow",
-            "settings": {
-              "flowURI": "res://flow:query_marbles_by_owner"
-            },
-            "input": {
-              "owner": "=$.parameters.owner"
             },
             "output": {
               "message": "=$.message",
@@ -257,6 +141,40 @@
         },
         {
           "settings": {
+            "name": "initMarble",
+            "arguments": [
+              {
+                "name": "name"
+              },
+              {
+                "name": "color"
+              },
+              {
+                "name": "size",
+                "type": "integer"
+              },
+              {
+                "name": "owner"
+              }
+            ]
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:init_marble"
+            },
+            "input": {
+              "parameters": "=$.parameters"
+            },
+            "output": {
+              "message": "=$.message",
+              "returns": "=$.returns",
+              "status": "=$.status"
+            }
+          }
+        },
+        {
+          "settings": {
             "name": "queryLargeMarblesWithPagination",
             "arguments": [
               {
@@ -278,9 +196,9 @@
               "flowURI": "res://flow:query_large_marbles_with_pagination"
             },
             "input": {
-              "size": "=$.parameters.size",
+              "bookmark": "=$.parameters.bookmark",
               "pageSize": "=$.parameters.pageSize",
-              "bookmark": "=$.parameters.bookmark"
+              "size": "=$.parameters.size"
             },
             "output": {
               "message": "=$.message",
@@ -291,7 +209,31 @@
         },
         {
           "settings": {
-            "name": "getHistory",
+            "name": "queryMarblesByOwner",
+            "arguments": [
+              {
+                "name": "owner"
+              }
+            ]
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:query_marbles_by_owner"
+            },
+            "input": {
+              "owner": "=$.parameters.owner"
+            },
+            "output": {
+              "message": "=$.message",
+              "returns": "=$.returns",
+              "status": "=$.status"
+            }
+          }
+        },
+        {
+          "settings": {
+            "name": "readMarble",
             "arguments": [
               {
                 "name": "name"
@@ -301,10 +243,66 @@
           "action": {
             "ref": "#flow",
             "settings": {
-              "flowURI": "res://flow:get_history"
+              "flowURI": "res://flow:read_marble"
             },
             "input": {
               "name": "=$.parameters.name"
+            },
+            "output": {
+              "message": "=$.message",
+              "returns": "=$.returns",
+              "status": "=$.status"
+            }
+          }
+        },
+        {
+          "settings": {
+            "name": "transferMarble",
+            "arguments": [
+              {
+                "name": "name"
+              },
+              {
+                "name": "newOwner"
+              }
+            ]
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:transfer_marble"
+            },
+            "input": {
+              "name": "=$.parameters.name",
+              "newOwner": "=$.parameters.newOwner"
+            },
+            "output": {
+              "message": "=$.message",
+              "returns": "=$.returns",
+              "status": "=$.status"
+            }
+          }
+        },
+        {
+          "settings": {
+            "name": "transferMarblesBasedOnColor",
+            "arguments": [
+              {
+                "name": "color"
+              },
+              {
+                "name": "newOwner"
+              }
+            ]
+          },
+          "action": {
+            "ref": "#flow",
+            "settings": {
+              "flowURI": "res://flow:transfer_marbles_based_on_color"
+            },
+            "input": {
+              "color": "=$.parameters.color",
+              "newOwner": "=$.parameters.newOwner"
             },
             "output": {
               "message": "=$.message",
@@ -340,7 +338,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -415,9 +413,9 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
-                  "message": "=$activity[put_5].message",
                   "status": "=$activity[put_5].code",
-                  "returns": "=coerce.toString($activity[put_5].result)"
+                  "message": "=$activity[put_5].message",
+                  "returns": "=$activity[put_5].result"
                 }
               }
             }
@@ -462,7 +460,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -512,9 +510,9 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
+                  "status": "=$activity[get_3].code",
                   "message": "=$activity[get_3].message",
-                  "returns": "=coerce.toString($activity[get_3].result)",
-                  "status": "=$activity[get_3].code"
+                  "returns": "=$activity[get_3].result"
                 }
               }
             }
@@ -559,7 +557,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -625,9 +623,9 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
-                  "message": "=$activity[delete_3].message",
                   "status": "=$activity[delete_3].code",
-                  "returns": "=coerce.toString($activity[delete_3].result)"
+                  "message": "=$activity[delete_3].message",
+                  "returns": "=$activity[delete_3].result"
                 }
               }
             }
@@ -676,7 +674,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -811,21 +809,24 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
-                  "message": "=$activity[put_5].message",
                   "status": "=$activity[put_5].code",
-                  "returns": "=coerce.toString($activity[put_5].result)"
+                  "message": "=$activity[put_5].message",
+                  "returns": "=$activity[put_5].result"
                 }
               }
             }
           },
           {
-            "id": "error_10",
-            "name": "ErrorNotFound",
-            "description": "Error marble not found",
+            "id": "actreturn_10",
+            "name": "ReturnNotFound",
+            "description": "Return Activity",
             "activity": {
-              "ref": "#error",
-              "input": {
-                "message": "=string.concat(\"Marble of name \", $flow.name, \" is not found\")"
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "status": 404,
+                  "message": "=string.concat(\"Marble of name \", $flow.name, \" is not found\")"
+                }
               }
             }
           }
@@ -863,7 +864,7 @@
           },
           {
             "from": "log_4",
-            "to": "error_10",
+            "to": "actreturn_10",
             "type": "expression",
             "value": "$activity[get_3].code != 200"
           }
@@ -897,7 +898,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -952,9 +953,9 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
-                  "message": "=$activity[get_3].message",
                   "status": "=$activity[get_3].code",
-                  "returns": "=coerce.toString($activity[get_3].result)"
+                  "message": "=$activity[get_3].message",
+                  "returns": "=$activity[get_3].result"
                 }
               }
             }
@@ -1003,7 +1004,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -1143,21 +1144,24 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
+                  "status": "=$activity[put_5].code",
                   "message": "=$activity[put_5].message",
-                  "returns": "=coerce.toString($activity[put_5].result)",
-                  "status": "=$activity[put_5].code"
+                  "returns": "=$activity[put_5].result"
                 }
               }
             }
           },
           {
-            "id": "error_9",
-            "name": "Error NotFound",
-            "description": "Error no matching marbles found",
+            "id": "actreturn_9",
+            "name": "ReturnNotFound",
+            "description": "Return Activity",
             "activity": {
-              "ref": "#error",
-              "input": {
-                "message": "=string.concat(\"Marbles of color \", $flow.color, \" not found\")"
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "message": "=string.concat(\"Marbles of color \", $flow.color, \" not found\")",
+                  "status": 404
+                }
               }
             }
           }
@@ -1191,7 +1195,7 @@
           },
           {
             "from": "log_4",
-            "to": "error_9",
+            "to": "actreturn_9",
             "type": "expression",
             "value": "$activity[get_3].code >= 300"
           }
@@ -1221,7 +1225,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -1287,9 +1291,9 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
-                  "message": "=$activity[get_3].message",
                   "status": "=$activity[get_3].code",
-                  "returns": "=coerce.toString($activity[get_3].result)"
+                  "message": "=$activity[get_3].message",
+                  "returns": "=$activity[get_3].result"
                 }
               }
             }
@@ -1346,7 +1350,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -1396,22 +1400,6 @@
             }
           },
           {
-            "id": "jsonmapper_5",
-            "name": "JSON Mapper",
-            "description": "map Get result",
-            "activity": {
-              "ref": "#jsonmapper",
-              "input": {
-                "data": {
-                  "mapping": {
-                    "bookmark": "=$activity[get_3].bookmark",
-                    "result": "=$activity[get_3].result"
-                  }
-                }
-              }
-            }
-          },
-          {
             "id": "actreturn_6",
             "name": "Return",
             "description": "Return Activity",
@@ -1421,7 +1409,12 @@
                 "mappings": {
                   "status": "=$activity[get_3].code",
                   "message": "=$activity[get_3].message",
-                  "returns": "=$activity[jsonmapper_5].result"
+                  "returns": {
+                    "mapping": {
+                      "bookmark": "=$activity[get_3].bookmark",
+                      "result": "=$activity[get_3].result"
+                    }
+                  }
                 }
               }
             }
@@ -1438,10 +1431,6 @@
           },
           {
             "from": "log_4",
-            "to": "jsonmapper_5"
-          },
-          {
-            "from": "jsonmapper_5",
             "to": "actreturn_6"
           }
         ]
@@ -1478,7 +1467,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -1541,22 +1530,6 @@
             }
           },
           {
-            "id": "jsonmapper_5",
-            "name": "JSON Mapper",
-            "description": "map query result to string",
-            "activity": {
-              "ref": "#jsonmapper",
-              "input": {
-                "data": {
-                  "mapping": {
-                    "bookmark": "=$activity[get_3].bookmark",
-                    "result": "=$activity[get_3].result"
-                  }
-                }
-              }
-            }
-          },
-          {
             "id": "actreturn_6",
             "name": "Return",
             "description": "Return Activity",
@@ -1564,9 +1537,14 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
-                  "message": "=$activity[get_3].message",
                   "status": "=$activity[get_3].code",
-                  "returns": "=$activity[jsonmapper_5].result"
+                  "message": "=$activity[get_3].message",
+                  "returns": {
+                    "mapping": {
+                      "bookmark": "=$activity[get_3].bookmark",
+                      "result": "=$activity[get_3].result"
+                    }
+                  }
                 }
               }
             }
@@ -1583,10 +1561,6 @@
           },
           {
             "from": "log_4",
-            "to": "jsonmapper_5"
-          },
-          {
-            "from": "jsonmapper_5",
             "to": "actreturn_6"
           }
         ]
@@ -1615,7 +1589,7 @@
             },
             {
               "name": "returns",
-              "type": "string"
+              "type": "any"
             }
           ]
         },
@@ -1665,9 +1639,9 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
+                  "status": "=$activity[gethistory_3].code",
                   "message": "=$activity[gethistory_3].message",
-                  "returns": "=coerce.toString($activity[gethistory_3].result)",
-                  "status": "=$activity[gethistory_3].code"
+                  "returns": "=$activity[gethistory_3].result"
                 }
               }
             }
