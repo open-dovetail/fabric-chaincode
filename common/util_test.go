@@ -103,3 +103,16 @@ func TestMockLedger(t *testing.T) {
 	assert.Nil(t, v, "retrieve non-existing composite key should return nil")
 	stub.MockTransactionEnd("4")
 }
+
+func TestExtractDataAttributes(t *testing.T) {
+	attrs := []string{"$.docType", "$.color", "$.name"}
+	sample := `{
+		"color": "blue",
+		"docType": "marble"
+	}`
+	var data interface{}
+	json.Unmarshal([]byte(sample), &data)
+	result := ExtractDataAttributes(attrs, data)
+	assert.Equal(t, 2, len(result), "it should extract 2 attribute fields")
+	assert.Equal(t, "blue", result[1], "second attribute should be 'blue'")
+}

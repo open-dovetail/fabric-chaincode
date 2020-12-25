@@ -365,11 +365,14 @@
               "input": {
                 "data": {
                   "mapping": {
-                    "docType": "marble",
-                    "name": "=$flow.parameters.name",
-                    "color": "=$flow.parameters.color",
-                    "size": "=$flow.parameters.size",
-                    "owner": "=$flow.parameters.owner"
+                    "key": "=$flow.parameters.name",
+                    "value": {
+                      "docType": "marble",
+                      "name": "=$flow.parameters.name",
+                      "color": "=$flow.parameters.color",
+                      "size": "=$flow.parameters.size",
+                      "owner": "=$flow.parameters.owner"
+                    }
                   }
                 }
               },
@@ -725,9 +728,9 @@
               "input": {
                 "data": {
                   "mapping": {
-                    "docType": "=$activity[get_3].result[0].docType",
-                    "name": "=$activity[get_3].result[0].name",
-                    "owner": "=$activity[get_3].result[0].owner"
+                    "docType": "=$activity[get_3].result[0].value.docType",
+                    "name": "=$activity[get_3].result[0].value.name",
+                    "owner": "=$activity[get_3].result[0].value.owner"
                   }
                 }
               },
@@ -767,11 +770,14 @@
               "input": {
                 "data": {
                   "mapping": {
-                    "docType": "=$activity[get_3].result[0].docType",
-                    "name": "=$activity[get_3].result[0].name",
-                    "color": "=$activity[get_3].result[0].color",
-                    "size": "=$activity[get_3].result[0].size",
-                    "owner": "=$flow.newOwner"
+                    "key": "=$flow.name",
+                    "value": {
+                      "docType": "=$activity[get_3].result[0].value.docType",
+                      "name": "=$activity[get_3].result[0].value.name",
+                      "color": "=$activity[get_3].result[0].value.color",
+                      "size": "=$activity[get_3].result[0].value.size",
+                      "owner": "=$flow.newOwner"
+                    }
                   }
                 }
               },
@@ -1071,9 +1077,9 @@
                 "data": {
                   "mapping": {
                     "@foreach($activity[get_3].result)": {
-                      "docType": "=$loop.docType",
-                      "name": "=$loop.name",
-                      "owner": "=$loop.owner"
+                      "docType": "=$loop.value.docType",
+                      "name": "=$loop.value.name",
+                      "owner": "=$loop.value.owner"
                     }
                   }
                 }
@@ -1115,10 +1121,13 @@
                 "data": {
                   "mapping": {
                     "@foreach($activity[get_3].result)": {
-                      "docType": "=$loop.docType",
-                      "name": "=$loop.name",
-                      "color": "=$loop.name",
-                      "owner": "=$flow.newOwner"
+                      "key": "=$loop.key",
+                      "value": {
+                        "docType": "=$loop.value.docType",
+                        "name": "=$loop.value.name",
+                        "color": "=$loop.value.name",
+                        "owner": "=$flow.newOwner"
+                      }
                     }
                   }
                 }

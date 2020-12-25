@@ -379,7 +379,7 @@ func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, co
 
 	fields := common.ExtractDataAttributes(a.attributes, data)
 	if len(fields) == 0 {
-		msg := fmt.Sprintf("no field specified for composite key %s in data %+v\n", a.keyName, data)
+		msg := fmt.Sprintf("no field specified for composite key %s with attributes %v in data %+v\n", a.keyName, a.attributes, data)
 		logger.Errorf("%s\n", msg)
 		return 404, nil, "", errors.New(msg)
 	}
