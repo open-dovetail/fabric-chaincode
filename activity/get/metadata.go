@@ -46,6 +46,7 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 	}
 
 	keys, err := coerce.ToObject(values["compositeKeys"])
+	logger.Infof("converted compsiteKeys %v\n", keys)
 	if err != nil {
 		logger.Errorf("failed to retrieve compositeKeys: %v\n", err)
 		return err

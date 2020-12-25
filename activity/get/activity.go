@@ -43,7 +43,9 @@ type Activity struct {
 // New creates a new Activity
 func New(ctx activity.InitContext) (activity.Activity, error) {
 	s := &Settings{}
+	logger.Infof("Create Get activity with InitContxt settings %v\n", ctx.Settings())
 	if err := s.FromMap(ctx.Settings()); err != nil {
+		logger.Errorf("failed to configure get activity %v\n", err)
 		return nil, err
 	}
 
