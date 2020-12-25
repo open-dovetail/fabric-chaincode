@@ -30,12 +30,13 @@ type Marble struct {
 func setup() error {
 	// config activity to add 2 composite keys for each ledger record
 	config := `{
-        "keyName": "owner~name",
-        "attributes": [
-            "docType",
-            "owner",
-            "name"
-        ],
+        "compositeKeys": {
+            "owner~name": [
+                "docType",
+                "owner",
+                "name"
+            ]
+		},
 		"query": {
 			"selector": {
 				"docType": "marble",
@@ -481,4 +482,28 @@ func TestGetByQuery(t *testing.T) {
 	assert.NoError(t, err, "get action output should not throw error")
 	assert.Equal(t, 500, output.Code, "action output status should be 500")
 	assert.Contains(t, output.Message, "\"tom\"", "response error should show failed query")
+}
+
+func TestGetHistory(t *testing.T) {
+	logger.Info("TestGetHistory")
+	act.keysOnly = false
+	act.history = true
+
+	input := &Input{Data: []interface{}{"marble1", "marble3"}}
+	err := tc.SetInputObject(input)
+	assert.NoError(t, err, "setting action input should not throw error")
+
+	// process request using mock Fabric transaction
+	stub.MockTransactionStart("10")
+	done, err := act.Eval(tc)
+	stub.MockTransactionEnd("10")
+	assert.False(t, done, "action eval should fail")
+	assert.Contains(t, err.Error(), "not implemented", "error message should show not implemented by mock")
+
+	// verify activity output
+	output := &Output{}
+	err = tc.GetOutputObject(output)
+	assert.NoError(t, err, "get action output should not throw error")
+	assert.Equal(t, 500, output.Code, "action output status should be 500")
+	assert.Contains(t, output.Message, "marble", "response error shows failed query")
 }

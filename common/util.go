@@ -38,6 +38,20 @@ const (
 
 var logger = log.ChildLogger(log.RootLogger(), "fabric-chaincode-common")
 
+// CompositeKey holds components in a composite key
+type CompositeKey struct {
+	Name   string   `json:"name,omitempty"`
+	Fields []string `json:"fields"`
+	Key    string   `json:"key"`
+}
+
+// CompositeKeyBag holds components in composite keys of the same name
+type CompositeKeyBag struct {
+	Name       string          `json:"name"`
+	Attributes []string        `json:"attributes"`
+	Keys       []*CompositeKey `json:"keys"`
+}
+
 // GetChaincodeStub returns Fabric chaincode stub from the activity context
 func GetChaincodeStub(ctx activity.Context) (shim.ChaincodeStubInterface, error) {
 	// get chaincode stub - protect call to GetMasterScope to support unit test with mock
@@ -245,13 +259,6 @@ func GetCompositeKeys(stub shim.ChaincodeStubInterface, store string, name strin
 	return iter, nil, err
 }
 
-// CompositeKey holds components in a composite key
-type CompositeKey struct {
-	Name   string   `json:"name,omitempty"`
-	Fields []string `json:"fields"`
-	Key    string   `json:"key"`
-}
-
 // IsCompositeKey returns true if a key belongs to composite key namespace
 func IsCompositeKey(key string) bool {
 	return key[0] == compositeKeyNamespace[0]
@@ -278,13 +285,6 @@ func SplitCompositeKey(stub shim.ChaincodeStubInterface, key string) (*Composite
 		Fields: attrs,
 		Key:    stateKey,
 	}, nil
-}
-
-// CompositeKeyBag holds components in composite keys of the same name
-type CompositeKeyBag struct {
-	Name       string          `json:"name"`
-	Attributes []string        `json:"attributes"`
-	Keys       []*CompositeKey `json:"keys"`
 }
 
 // AddCompositeKey adds a new key to the bag

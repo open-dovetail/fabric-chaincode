@@ -8,14 +8,9 @@
     "ref": "github.com/open-dovetail/fabric-chaincode/activity/get",
     "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/get",
     "settings": [{
-            "name": "keyName",
-            "type": "string",
-            "description": "name of the composite key used to retrieve data"
-        },
-        {
-            "name": "attributes",
-            "type": "array",
-            "description": "list of json-path for attributes used to construct composite key"
+            "name": "compositeKeys",
+            "type": "object",
+            "description": "A composite key and its field names as object map[string][]string, e.g. {index1: [attr1,attr2]}. Note: only one key is used."
         },
         {
             "name": "query",
@@ -26,6 +21,11 @@
             "name": "keysOnly",
             "type": "boolean",
             "description": "Fetch specified composite keys only, not the state."
+        },
+        {
+            "name": "history",
+            "type": "boolean",
+            "description": "Fetch history record of specified state."
         }
     ],
     "inputs": [{

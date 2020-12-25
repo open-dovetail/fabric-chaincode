@@ -12,6 +12,7 @@ type Settings struct {
 	Attributes []string               `md:"attributes"`
 	Query      map[string]interface{} `md:"query"`
 	KeysOnly   bool                   `md:"keysOnly"`
+	History    bool                   `md:"history"`
 }
 
 // Input of the activity
@@ -34,31 +35,48 @@ type Output struct {
 // construct composite key definition of format {"index": ["field1, "field2"]}
 func (h *Settings) FromMap(values map[string]interface{}) error {
 	var err error
-	if h.KeyName, err = coerce.ToString(values["keyName"]); err != nil {
+	if h.KeysOnly, err = coerce.ToBool(values["keysOnly"]); err != nil {
 		return err
 	}
-	if h.KeysOnly, err = coerce.ToBool(values["keysOnly"]); err != nil {
+	if h.History, err = coerce.ToBool(values["history"]); err != nil {
 		return err
 	}
 	if h.Query, err = coerce.ToObject(values["query"]); err != nil {
 		return err
 	}
 
-	if attrs, err := coerce.ToArray(values["attributes"]); err == nil && len(attrs) > 0 {
-		for _, v := range attrs {
-			if f, err := coerce.ToString(v); err == nil {
+	keys, err := coerce.ToObject(values["compositeKeys"])
+	if err != nil {
+		return err
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+
+	for k, v := range keys {
+		var fields []string
+		values, err := coerce.ToArray(v)
+		if err != nil || len(values) == 0 {
+			logger.Warnf("ignored composite key setting for key %s. error: %+v", k, err)
+			continue
+		}
+		for _, n := range values {
+			if f, ok := n.(string); ok && len(f) > 0 {
+				path := f
 				if !strings.HasPrefix(f, "$.") {
 					// make it valid JsonPath expression
-					f = "$." + f
+					path = "$." + f
 				}
-				h.Attributes = append(h.Attributes, f)
+				fields = append(fields, path)
 			}
 		}
-	}
-	if len(h.Attributes) == 0 {
-		if len(h.KeyName) > 0 {
-			logger.Warnf("ignore key definition for %s: No attribute is specified\n", h.KeyName)
-			h.KeyName = ""
+		if len(fields) > 0 {
+			// pick only the first valid key definition
+			// Note: we use map for only a single composite key to avoid Web UI issue on exporting array settings
+			h.KeyName = k
+			h.Attributes = fields
+			logger.Debugf("configured composite key %s with fields %+v", k, fields)
+			break
 		}
 	}
 	return nil

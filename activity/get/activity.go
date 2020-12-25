@@ -1,10 +1,13 @@
 package get
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/open-dovetail/fabric-chaincode/common"
@@ -22,12 +25,19 @@ func init() {
 	_ = activity.Register(&Activity{}, New)
 }
 
+// StateData contains a state key and its associated data
+type StateData struct {
+	Key   string
+	Value []byte
+}
+
 // Activity is a stub for executing Hyperledger Fabric get operations
 type Activity struct {
 	keyName    string
 	attributes []string
 	query      string
 	keysOnly   bool
+	history    bool
 }
 
 // New creates a new Activity
@@ -49,6 +59,7 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 		attributes: s.Attributes,
 		query:      queryStmt,
 		keysOnly:   s.KeysOnly,
+		history:    s.History,
 	}, nil
 }
 
@@ -174,12 +185,6 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	return true, nil
 }
 
-// StateData contains a state key and its associated data
-type StateData struct {
-	Key   string
-	Value []byte
-}
-
 // execute read or query operation to fetech data from ledger or private data collections
 // return code, result, bookmark, or error
 //   if keysOnly is true, result contains list of composite keys as []string
@@ -193,8 +198,11 @@ func (a *Activity) retrieveData(stub shim.ChaincodeStubInterface, collection str
 			logger.Errorf("%s\n", msg)
 			return 400, nil, "", errors.New(msg)
 		}
-		code, value, err := retrieveDataByKey(stub, collection, data.(string))
-		return code, []interface{}{value}, "", err
+		code, value, err := a.retrieveDataByKey(stub, collection, data.(string))
+		if err != nil {
+			return code, nil, "", err
+		}
+		return code, []interface{}{value}, "", nil
 	case reflect.Map:
 		request := data.(map[string]interface{})
 		rangeStart, okStart := request["start"]
@@ -218,9 +226,18 @@ func (a *Activity) retrieveData(stub shim.ChaincodeStubInterface, collection str
 
 // retrieve data for a specified state key or composite key from the ledger or a private data collection
 // return code, state or error
-func retrieveDataByKey(stub shim.ChaincodeStubInterface, collection string, key string) (int, *StateData, error) {
+func (a *Activity) retrieveDataByKey(stub shim.ChaincodeStubInterface, collection string, key string) (int, *StateData, error) {
+	if common.IsCompositeKey(key) {
+		return 400, nil, errors.Errorf("Cannot get state for composite key %s", key)
+	}
 
-	_, jsonBytes, err := common.GetData(stub, collection, key)
+	var jsonBytes []byte
+	var err error
+	if a.history {
+		jsonBytes, err = retrieveHistory(stub, key)
+	} else {
+		_, jsonBytes, err = common.GetData(stub, collection, key)
+	}
 	if err != nil {
 		msg := fmt.Sprintf("failed to get data '%s @ %s'", key, collection)
 		logger.Errorf("%s: %+v\n", msg, err)
@@ -425,4 +442,69 @@ func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, co
 		})
 	}
 	return 200, values, newBookmark, nil
+}
+
+// retrieve history records of a specified state key
+func retrieveHistory(stub shim.ChaincodeStubInterface, key string) ([]byte, error) {
+	// retrieve data for the key
+	resultsIterator, err := stub.GetHistoryForKey(key)
+	if err != nil {
+		msg := "error retrieving history"
+		logger.Errorf("%s: %+v\n", msg, err)
+		return nil, errors.Wrapf(err, msg)
+	}
+	defer resultsIterator.Close()
+
+	jsonBytes, err := constructHistoryResponse(resultsIterator)
+	if err != nil {
+		msg := "history iterator error"
+		logger.Errorf("%s: %+v\n", msg, err)
+		return nil, errors.Wrapf(err, msg)
+	}
+
+	return jsonBytes, nil
+}
+
+func constructHistoryResponse(resultsIterator shim.HistoryQueryIteratorInterface) ([]byte, error) {
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	isEmpty := true
+	for resultsIterator.HasNext() {
+		response, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+		// Add a comma before array members, suppress it for the first array member
+		if !isEmpty {
+			buffer.WriteString(",")
+		}
+
+		buffer.WriteString("{\"" + common.FabricTxID + "\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(response.TxId)
+		buffer.WriteString("\"")
+
+		buffer.WriteString(", \"" + common.ValueField + "\":")
+		// if it was a delete operation on given key, then we need to set the
+		//corresponding value null. Else, we will write the response.Value
+		if response.IsDelete {
+			buffer.WriteString("null")
+		} else {
+			buffer.WriteString(string(response.Value))
+		}
+
+		buffer.WriteString(", \"" + common.FabricTxTime + "\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(time.Unix(response.Timestamp.Seconds, int64(response.Timestamp.Nanos)).UTC().Format(time.RFC3339Nano))
+		buffer.WriteString("\"")
+
+		buffer.WriteString(", \"" + common.ValueDeleted + "\":")
+		buffer.WriteString(strconv.FormatBool(response.IsDelete))
+
+		buffer.WriteString("}")
+		isEmpty = false
+	}
+	buffer.WriteString("]")
+	return buffer.Bytes(), nil
 }
