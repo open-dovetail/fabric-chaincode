@@ -47,9 +47,11 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 
 	keys, err := coerce.ToObject(values["compositeKeys"])
 	if err != nil {
+		logger.Errorf("failed to retrieve compositeKeys: %v\n", err)
 		return err
 	}
 	if len(keys) == 0 {
+		logger.Infof("composite key is not specified\n")
 		return nil
 	}
 
@@ -75,9 +77,10 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 			// Note: we use map for only a single composite key to avoid Web UI issue on exporting array settings
 			h.KeyName = k
 			h.Attributes = fields
-			logger.Debugf("configured composite key %s with fields %+v", k, fields)
+			logger.Infof("configured composite key %s with fields %+v", k, fields)
 			break
 		}
+		logger.Infof("composite key %s does not have attributes. ignored\n", k)
 	}
 	return nil
 }

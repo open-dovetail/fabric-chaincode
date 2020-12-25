@@ -233,7 +233,7 @@ func (a *Activity) retrieveDataByKey(stub shim.ChaincodeStubInterface, collectio
 
 	var jsonBytes []byte
 	var err error
-	if a.history {
+	if a.history && len(collection) == 0 {
 		jsonBytes, err = retrieveHistory(stub, key)
 	} else {
 		_, jsonBytes, err = common.GetData(stub, collection, key)
@@ -389,7 +389,7 @@ func (a *Activity) retrieveDataByRange(stub shim.ChaincodeStubInterface, collect
 //   if keysOnly is false, result is a list of state data as []*StateData
 func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, collection string, data map[string]interface{}, pageSize int32, bookmark string) (int, []interface{}, string, error) {
 	if len(a.keyName) == 0 || len(data) == 0 {
-		msg := "composite key and data are not specified for partial key query"
+		msg := fmt.Sprintf("composite key %s and data %v are not specified for partial key query", a.keyName, data)
 		logger.Errorf("%s\n", msg)
 		return 400, nil, "", errors.New(msg)
 	}

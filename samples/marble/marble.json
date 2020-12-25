@@ -7,7 +7,6 @@
   "imports": [
     "github.com/open-dovetail/fabric-chaincode/activity/delete",
     "github.com/open-dovetail/fabric-chaincode/activity/get",
-    "github.com/open-dovetail/fabric-chaincode/activity/gethistory",
     "github.com/open-dovetail/fabric-chaincode/activity/put",
     "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
     "github.com/project-flogo/contrib/activity/actreturn",
@@ -1029,9 +1028,9 @@
             }
           },
           {
-            "id": "get_3",
+            "id": "get_11",
             "name": "GetByColor",
-            "description": "retrieve data by partial key on color",
+            "description": "This activity retrieves data from fabric ledger or private data collection",
             "activity": {
               "ref": "#get",
               "input": {
@@ -1043,13 +1042,14 @@
                 }
               },
               "settings": {
-                "keyName": "color~name",
-                "attributes": {
-                  "mapping": [
-                    "docType",
-                    "color",
-                    "name"
-                  ]
+                "compositeKeys": {
+                  "mapping": {
+                    "color~name": [
+                      "docType",
+                      "color",
+                      "name"
+                    ]
+                  }
                 }
               }
             }
@@ -1061,7 +1061,7 @@
             "activity": {
               "ref": "#log",
               "input": {
-                "message": "=string.concat(\"[GET] \", $activity[get_3].code, \" - \", $activity[get_3].message)",
+                "message": "=string.concat(\"[GET] \", $activity[get_11].code, \" - \", $activity[get_11].message)",
                 "addDetails": false,
                 "usePrint": false
               }
@@ -1076,7 +1076,7 @@
               "input": {
                 "data": {
                   "mapping": {
-                    "@foreach($activity[get_3].result)": {
+                    "@foreach($activity[get_11].result)": {
                       "docType": "=$loop.value.docType",
                       "name": "=$loop.value.name",
                       "owner": "=$loop.value.owner"
@@ -1120,12 +1120,12 @@
               "input": {
                 "data": {
                   "mapping": {
-                    "@foreach($activity[get_3].result)": {
+                    "@foreach($activity[get_11].result)": {
                       "key": "=$loop.key",
                       "value": {
                         "docType": "=$loop.value.docType",
                         "name": "=$loop.value.name",
-                        "color": "=$loop.value.name",
+                        "color": "=$loop.value.color",
                         "owner": "=$flow.newOwner"
                       }
                     }
@@ -1142,6 +1142,19 @@
                     ]
                   }
                 }
+              }
+            }
+          },
+          {
+            "id": "log_10",
+            "name": "LogPut",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "addDetails": false,
+                "usePrint": false,
+                "message": "=string.concat(\"[PUT] \", $activity[put_5].code, \" - \", $activity[put_5].message)"
               }
             }
           },
@@ -1178,17 +1191,17 @@
         "links": [
           {
             "from": "log_2",
-            "to": "get_3"
+            "to": "get_11"
           },
           {
-            "from": "get_3",
+            "from": "get_11",
             "to": "log_4"
           },
           {
             "from": "log_4",
             "to": "delete_6",
             "type": "expression",
-            "value": "$activity[get_3].code < 300"
+            "value": "$activity[get_11].code < 300"
           },
           {
             "from": "delete_6",
@@ -1200,13 +1213,17 @@
           },
           {
             "from": "put_5",
+            "to": "log_10"
+          },
+          {
+            "from": "log_10",
             "to": "actreturn_8"
           },
           {
             "from": "log_4",
             "to": "actreturn_9",
             "type": "expression",
-            "value": "$activity[get_3].code >= 300"
+            "value": "$activity[get_11].code >= 300"
           }
         ]
       }
@@ -1617,13 +1634,16 @@
             }
           },
           {
-            "id": "gethistory_3",
-            "name": "Get History",
-            "description": "retrieve history of a marble",
+            "id": "get_6",
+            "name": "GetHistory",
+            "description": "This activity retrieves data from fabric ledger or private data collection",
             "activity": {
-              "ref": "#gethistory",
+              "ref": "#get",
               "input": {
-                "key": "=$flow.name"
+                "data": "=$flow.name"
+              },
+              "settings": {
+                "history": true
               }
             }
           },
@@ -1636,7 +1656,7 @@
               "input": {
                 "addDetails": false,
                 "usePrint": false,
-                "message": "=string.concat(\"[HISTORY] \", $activity[gethistory_3].code, \" - \", $activity[gethistory_3].message)"
+                "message": "=string.concat(\"[HISTORY] \", $activity[get_6].code, \" - \", $activity[get_6].message)"
               }
             }
           },
@@ -1648,9 +1668,9 @@
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
-                  "status": "=$activity[gethistory_3].code",
-                  "message": "=$activity[gethistory_3].message",
-                  "returns": "=$activity[gethistory_3].result"
+                  "status": "=$activity[get_6].code",
+                  "message": "=$activity[get_6].message",
+                  "returns": "=$activity[get_6].result"
                 }
               }
             }
@@ -1659,10 +1679,10 @@
         "links": [
           {
             "from": "log_2",
-            "to": "gethistory_3"
+            "to": "get_6"
           },
           {
-            "from": "gethistory_3",
+            "from": "get_6",
             "to": "log_4"
           },
           {
