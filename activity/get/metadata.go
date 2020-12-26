@@ -11,7 +11,7 @@ import (
 type Settings struct {
 	KeyName    string   `md:"keyName"`
 	Attributes []string `md:"attributes"`
-	Query      string   `md:"query"`
+	QueryStmt  string   `md:"queryStmt"`
 	KeysOnly   bool     `md:"keysOnly"`
 	History    bool     `md:"history"`
 }
@@ -49,8 +49,8 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 	}
 	if len(query) > 0 {
 		if jsonBytes, err := json.Marshal(query); err == nil {
-			h.Query = string(jsonBytes)
-			logger.Infof("configured query statement %s", h.Query)
+			h.QueryStmt = string(jsonBytes)
+			logger.Infof("configured query statement %s", h.QueryStmt)
 		}
 	}
 

@@ -56,7 +56,7 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 	return &Activity{
 		keyName:    s.KeyName,
 		attributes: s.Attributes,
-		query:      s.Query,
+		query:      s.QueryStmt,
 		keysOnly:   s.KeysOnly,
 		history:    s.History,
 	}, nil
