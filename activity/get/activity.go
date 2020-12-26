@@ -13,6 +13,8 @@ import (
 	"github.com/open-dovetail/fabric-chaincode/common"
 	"github.com/pkg/errors"
 	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data/coerce"
+	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/support/log"
 )
 
@@ -47,9 +49,9 @@ func (a *Activity) String() string {
 // New creates a new Activity
 func New(ctx activity.InitContext) (activity.Activity, error) {
 	s := &Settings{}
-	logger.Infof("Create Get activity with InitContxt settings %v\n", ctx.Settings())
-	if err := s.FromMap(ctx.Settings()); err != nil {
-		logger.Errorf("failed to configure get activity %v\n", err)
+	ctx.Logger().Infof("Create Get activity with InitContxt settings %v\n", ctx.Settings())
+	if err := metadata.MapToStruct(ctx.Settings(), s, true); err != nil {
+		ctx.Logger().Errorf("failed to configure get activity %v\n", err)
 		return nil, err
 	}
 
@@ -60,13 +62,43 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 		}
 	}
 
-	return &Activity{
-		keyName:    s.KeyName,
-		attributes: s.Attributes,
+	var ck string
+	var attrs []string
+	for k, v := range s.CompositeKeys {
+		var fields []string
+		values, err := coerce.ToArray(v)
+		if err != nil || len(values) == 0 {
+			ctx.Logger().Warnf("ignored composite key setting for key %s. error: %+v", k, err)
+			continue
+		}
+		for _, n := range values {
+			if f, ok := n.(string); ok && len(f) > 0 {
+				path := f
+				if !strings.HasPrefix(f, "$.") {
+					// make it valid JsonPath expression
+					path = "$." + f
+				}
+				fields = append(fields, path)
+			}
+		}
+		if len(fields) > 0 {
+			// pick only the first valid key definition
+			// Note: we use map for only a single composite key to avoid Web UI issue on exporting array settings
+			ck = k
+			attrs = fields
+			ctx.Logger().Infof("configured composite key %s with fields %+v", k, fields)
+			break
+		}
+		ctx.Logger().Infof("composite key %s does not have attributes. ignored\n", k)
+	}
+	act := &Activity{
+		keyName:    ck,
+		attributes: attrs,
 		query:      queryStmt,
 		keysOnly:   s.KeysOnly,
 		history:    s.History,
-	}, nil
+	}
+	return act, nil
 }
 
 // Metadata implements activity.Activity.Metadata

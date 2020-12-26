@@ -1,18 +1,15 @@
 package get
 
 import (
-	"strings"
-
 	"github.com/project-flogo/core/data/coerce"
 )
 
 // Settings of the activity
 type Settings struct {
-	KeyName    string                 `md:"keyName"`
-	Attributes []string               `md:"attributes"`
-	Query      map[string]interface{} `md:"query"`
-	KeysOnly   bool                   `md:"keysOnly"`
-	History    bool                   `md:"history"`
+	CompositeKeys map[string]interface{} `md:"compositeKeys"`
+	Query         map[string]interface{} `md:"query"`
+	KeysOnly      bool                   `md:"keysOnly"`
+	History       bool                   `md:"history"`
 }
 
 // Input of the activity
@@ -33,7 +30,7 @@ type Output struct {
 
 // FromMap sets settings from a map
 // construct composite key definition of format {"index": ["field1, "field2"]}
-func (h *Settings) FromMap(values map[string]interface{}) error {
+/* func (h *Settings) FromMap(values map[string]interface{}) error {
 	var err error
 	if h.KeysOnly, err = coerce.ToBool(values["keysOnly"]); err != nil {
 		return err
@@ -85,6 +82,7 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 	}
 	return nil
 }
+*/
 
 // ToMap converts activity input to a map
 func (i *Input) ToMap() map[string]interface{} {

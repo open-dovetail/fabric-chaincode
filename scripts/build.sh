@@ -49,6 +49,6 @@ fi
 # cleanup build files
 if [ -f "${MODEL_DIR}/${CCNAME}_${VERSION}.tar.gz" ]; then
   echo "cleanup build files"
-  rm -R ${MODEL_DIR}/${CCNAME}
+#  rm -R ${MODEL_DIR}/${CCNAME}
   rm ${MODEL_DIR}/go.mod
 fi
