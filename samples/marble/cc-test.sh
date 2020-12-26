@@ -25,14 +25,16 @@ sleep 5
 peer chaincode query -C mychannel -n marble_cc -c '{"Args":["readMarble","marble2"]}'
 peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"transferMarble","Args":["marble2","jerry"]}'
 peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"transferMarblesBasedOnColor","Args":["blue","jerry"]}'
-#sleep 5
-#peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRange","marble1","marble5"]}'
+
+echo "test range query ..."
+sleep 5
+peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRange","marble1","marble5"]}'
 
 # delete marble state, not history
 echo "test delete and history"
-#peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"delete","Args":["marble1"]}'
-#sleep 5
-#peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getHistory","marble1"]}'
+peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"delete","Args":["marble1"]}'
+sleep 5
+peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getHistory","marble1"]}'
 
 # rich query
 echo "test rich query ..."
@@ -40,7 +42,7 @@ echo "test rich query ..."
 
 # query pagination using page-size and starting bookmark
 echo "test pagination ..."
-#peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRangeWithPagination","marble1","marble9", "3", ""]}'
-#peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRangeWithPagination","marble1","marble9", "3", "marble5"]}'
+peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRangeWithPagination","marble1","marble9", "3", ""]}'
+peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRangeWithPagination","marble1","marble9", "3", "marble5"]}'
 #peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryLargeMarblesWithPagination","60", "3", ""]}'
 #peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryLargeMarblesWithPagination","60", "3", "marble6"]}'
