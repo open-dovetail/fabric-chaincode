@@ -34,6 +34,11 @@ flogo build --shim fabric_transaction --verbose
 cd src
 go mod tidy
 
+# copy couchdb index
+if [ -d "${MODEL_DIR}/META-INF" ]; then
+  cp -rf ${MODEL_DIR}/META-INF .
+fi
+
 # construct chaincode package
 cd ${MODEL_DIR}/${CCNAME}
 if [ -f "bin/${CCNAME}" ]; then

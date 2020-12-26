@@ -18,6 +18,7 @@ peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_A
 peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"initMarble","Args":["marble4","purple","80","tom"]}'
 peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"initMarble","Args":["marble5","purple","90","tom"]}'
 peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"initMarble","Args":["marble6","purple","100","tom"]}'
+peer chaincode invoke $ORDERER_ARGS -C mychannel -n marble_cc $ORG1_ARGS $ORG2_ARGS -c '{"function":"initMarble","Args":["marble7","purple","110","tom"]}'
 
 # transfer marble ownership
 echo "test transfer marbles ..."
@@ -38,11 +39,11 @@ peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getHistory","marble
 
 # rich query
 echo "test rich query ..."
-#peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryMarblesByOwner","jerry"]}'
+peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryMarblesByOwner","jerry"]}'
 
 # query pagination using page-size and starting bookmark
 echo "test pagination ..."
 peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRangeWithPagination","marble1","marble9", "3", ""]}'
 peer chaincode query -C mychannel -n marble_cc -c '{"Args":["getMarblesByRangeWithPagination","marble1","marble9", "3", "marble5"]}'
-#peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryLargeMarblesWithPagination","60", "3", ""]}'
-#peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryLargeMarblesWithPagination","60", "3", "marble6"]}'
+peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryLargeMarblesWithPagination","60", "3", ""]}'
+peer chaincode query -C mychannel -n marble_cc -c '{"Args":["queryLargeMarblesWithPagination","60", "3", "g1AAAAA-eJzLYWBgYMpgSmHgKy5JLCrJTq2MT8lPzkzJBYqz5yYWJeWkmoGkOWDSyBJZABz3EhU"]}'
