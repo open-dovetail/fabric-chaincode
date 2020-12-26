@@ -40,6 +40,10 @@ type Activity struct {
 	history    bool
 }
 
+func (a *Activity) String() string {
+	return fmt.Sprintf("GetActivity(key:%s, attrs:%v, query:%s, keyOnly:%t, history:%t)", a.keyName, a.attributes, a.query, a.keysOnly, a.history)
+}
+
 // New creates a new Activity
 func New(ctx activity.InitContext) (activity.Activity, error) {
 	s := &Settings{}
@@ -72,6 +76,8 @@ func (a *Activity) Metadata() *activity.Metadata {
 
 // Eval implements activity.Activity.Eval
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
+	logger.Infof("%v\n", a)
+
 	// check input args
 	input := &Input{}
 	if err = ctx.GetInputObject(input); err != nil {
