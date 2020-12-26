@@ -34,7 +34,9 @@ func (a *Activity) String() string {
 // New creates a new Activity
 func New(ctx activity.InitContext) (activity.Activity, error) {
 	s := &Settings{}
+	logger.Infof("Create Delete activity with InitContxt settings %v", ctx.Settings())
 	if err := s.FromMap(ctx.Settings()); err != nil {
+		logger.Errorf("failed to configure Delete activity %v", err)
 		return nil, err
 	}
 
@@ -42,7 +44,6 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 		compositeKeys: s.CompositeKeys,
 		keysOnly:      s.KeysOnly,
 	}, nil
-
 }
 
 // Metadata implements activity.Activity.Metadata
@@ -52,7 +53,7 @@ func (a *Activity) Metadata() *activity.Metadata {
 
 // Eval implements activity.Activity.Eval
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
-	logger.Infof("%v\n", a)
+	logger.Debugf("%v", a)
 
 	// check input args
 	input := &Input{}
@@ -64,7 +65,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	stub, err := common.GetChaincodeStub(ctx)
 	if err != nil || stub == nil {
 		msg := fmt.Sprintf("failed to retrieve fabric stub: %v", err)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		output := &Output{Code: 500, Message: msg}
 		ctx.SetOutputObject(output)
 		return false, err
@@ -112,7 +113,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		}
 	default:
 		msg := fmt.Sprintf("invalid input data type %T", input.Data)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		output := &Output{Code: 400, Message: msg}
 		ctx.SetOutputObject(output)
 		return false, err
@@ -203,27 +204,27 @@ func (a *Activity) deleteDataByKey(stub shim.ChaincodeStubInterface, collection 
 	_, jsonBytes, err := common.GetData(stub, collection, key)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get data '%s @ %s'", key, collection)
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return 500, nil, errors.Wrapf(err, msg)
 	}
 	if jsonBytes == nil {
-		msg := fmt.Sprintf("no data found for '%s @ %s'\n", key, collection)
-		logger.Debugf("%s'\n", msg)
+		msg := fmt.Sprintf("no data found for '%s @ %s'", key, collection)
+		logger.Debugf("%s'", msg)
 		return 404, nil, errors.New(msg)
 	}
 
 	// delete data
 	if err := common.DeleteData(stub, collection, key); err != nil {
 		msg := fmt.Sprintf("failed to delete data %s @ %s", key, collection)
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return 500, nil, errors.Wrapf(err, msg)
 	}
-	logger.Debugf("deleted %s @ %s, data: %s\n", key, collection, string(jsonBytes))
+	logger.Debugf("deleted %s @ %s, data: %s", key, collection, string(jsonBytes))
 
 	var value interface{}
 	if err := json.Unmarshal(jsonBytes, &value); err != nil {
 		msg := fmt.Sprintf("failed to parse JSON data - %s", string(jsonBytes))
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return 500, nil, errors.Wrapf(err, msg)
 	}
 
@@ -232,9 +233,9 @@ func (a *Activity) deleteDataByKey(stub shim.ChaincodeStubInterface, collection 
 	if len(compKeys) > 0 {
 		for _, k := range compKeys {
 			if err := common.DeleteData(stub, collection, k); err != nil {
-				logger.Warnf("failed to delete composite key %s @ %s: %+v\n", k, collection, err)
+				logger.Warnf("failed to delete composite key %s @ %s: %+v", k, collection, err)
 			} else {
-				logger.Debugf("deleted composite key %s @ %s\n", k, collection)
+				logger.Debugf("deleted composite key %s @ %s", k, collection)
 			}
 		}
 	}
@@ -250,7 +251,7 @@ func (a *Activity) collectData(stub shim.ChaincodeStubInterface, collection stri
 		// evaluate a state key
 		if a.keysOnly {
 			msg := fmt.Sprintf("cannot delete state key %v while keysOnly is true", data)
-			logger.Errorf("%s\n", msg)
+			logger.Errorf("%s", msg)
 			return 400, nil, errors.New(msg)
 		}
 		k := data.(string)
@@ -263,7 +264,7 @@ func (a *Activity) collectData(stub shim.ChaincodeStubInterface, collection stri
 		return a.deleteDataByPartialKey(stub, collection, request)
 	default:
 		msg := fmt.Sprintf("invalid input data type %T", data)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 400, nil, errors.New(msg)
 	}
 }
@@ -279,7 +280,7 @@ func (a *Activity) deleteDataByPartialKey(stub shim.ChaincodeStubInterface, coll
 	keys := common.ExtractCompositeKeys(stub, a.compositeKeys, "", data)
 	if len(keys) == 0 {
 		msg := fmt.Sprintf("no composite key found for '%v'\n", data)
-		logger.Debugf("%s'\n", msg)
+		logger.Debugf("%s'", msg)
 		return 404, nil, errors.New(msg)
 	}
 
@@ -323,14 +324,14 @@ func deleteCompositeKeys(stub shim.ChaincodeStubInterface, collection string, ke
 	ck, err := common.SplitCompositeKey(stub, key)
 	if err != nil {
 		msg := fmt.Sprintf("invalid composite key %s", key)
-		logger.Warnf("%s: %v\n", msg, err)
+		logger.Warnf("%s: %v", msg, err)
 		return nil, errors.Wrapf(err, msg)
 	}
 	// query matching composite keys
 	iter, _, err := common.GetCompositeKeys(stub, collection, ck.Name, ck.Fields, 0, "")
 	if err != nil {
 		msg := fmt.Sprintf("error executing partial key query for %s", key)
-		logger.Warnf("%s: %v\n", msg, err)
+		logger.Warnf("%s: %v", msg, err)
 		return nil, errors.Wrapf(err, msg)
 	}
 	defer iter.Close()
@@ -339,7 +340,7 @@ func deleteCompositeKeys(stub shim.ChaincodeStubInterface, collection string, ke
 	for iter.HasNext() {
 		resp, err := iter.Next()
 		if err != nil {
-			logger.Warnf("ignore query iterator error %v\n", err)
+			logger.Warnf("ignore query iterator error %v", err)
 			continue
 		}
 		// delete composite key
@@ -357,14 +358,14 @@ func collectStatesByCompositeKey(stub shim.ChaincodeStubInterface, collection st
 	ck, err := common.SplitCompositeKey(stub, key)
 	if err != nil {
 		msg := fmt.Sprintf("invalid composite key %s", key)
-		logger.Warnf("%s: %v\n", msg, err)
+		logger.Warnf("%s: %v", msg, err)
 		return nil, errors.Wrapf(err, msg)
 	}
 	// query matching composite keys
 	iter, _, err := common.GetCompositeKeys(stub, collection, ck.Name, ck.Fields, 0, "")
 	if err != nil {
 		msg := fmt.Sprintf("error executing partial key query for %s", key)
-		logger.Warnf("%s: %v\n", msg, err)
+		logger.Warnf("%s: %v", msg, err)
 		return nil, errors.Wrapf(err, msg)
 	}
 	defer iter.Close()
@@ -373,12 +374,12 @@ func collectStatesByCompositeKey(stub shim.ChaincodeStubInterface, collection st
 	for iter.HasNext() {
 		resp, err := iter.Next()
 		if err != nil {
-			logger.Warnf("ignore key iterator error %v\n", err)
+			logger.Warnf("ignore key iterator error %v", err)
 			continue
 		}
 		// add state key
 		if c, err := common.SplitCompositeKey(stub, resp.Key); err != nil {
-			logger.Warnf("ignore invalid composite key %s with parsing error %v\n", resp.Key, err)
+			logger.Warnf("ignore invalid composite key %s with parsing error %v", resp.Key, err)
 		} else {
 			// collect unique state keys
 			stateKeys[c.Key] = nil

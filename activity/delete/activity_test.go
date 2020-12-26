@@ -31,16 +31,18 @@ func setup() error {
 	// config activity to add 2 composite keys for each ledger record
 	config := `{
         "compositeKeys": {
-            "owner~name": [
-                "docType",
-                "owner",
-                "name"
-            ],
-            "color~name": [
-                "docType",
-                "color",
-                "name"
-            ]
+			"mapping": {
+            	"owner~name": [
+                	"docType",
+                	"owner",
+                	"name"
+            	],
+            	"color~name": [
+                	"docType",
+                	"color",
+                	"name"
+				]
+			}
 		},
 		"keysOnly": false
 	}`

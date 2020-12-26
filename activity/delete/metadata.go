@@ -32,19 +32,18 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 	if h.KeysOnly, err = coerce.ToBool(values["keysOnly"]); err != nil {
 		return err
 	}
-	keys, err := coerce.ToObject(values["compositeKeys"])
-	if err != nil {
+
+	keys, err := mapToObject(values["compositeKeys"])
+	if err != nil || len(keys) == 0 {
+		logger.Debugf("No composite key is defined. error: %+v", err)
 		return err
-	}
-	if len(keys) == 0 {
-		return nil
 	}
 	h.CompositeKeys = make(map[string][]string)
 	for k, v := range keys {
 		var fields []string
 		values, err := coerce.ToArray(v)
 		if err != nil || len(values) == 0 {
-			logger.Warnf("ignored composite key setting for key %s. error: %+v", k, err)
+			logger.Warnf("ignored composite key config for key %s. error: %+v", k, err)
 			continue
 		}
 		for _, n := range values {
@@ -59,10 +58,23 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 		}
 		if len(fields) > 0 {
 			h.CompositeKeys[k] = fields
-			logger.Debugf("configured composite key %s with fields %+v", k, fields)
+			logger.Infof("configured composite key %s with fields %+v", k, fields)
 		}
 	}
 	return nil
+}
+
+// strip extra nesting of mapping in models exported by OSS Web UI
+func mapToObject(data interface{}) (map[string]interface{}, error) {
+	val, ok := data.(map[string]interface{})
+	if !ok {
+		return coerce.ToObject(data)
+	}
+	if stripped, ok := val["mapping"]; ok && len(val) == 1 {
+		// mapping is the only element of nesting, strip it
+		return coerce.ToObject(stripped)
+	}
+	return coerce.ToObject(data)
 }
 
 // ToMap converts activity input to a map

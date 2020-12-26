@@ -28,21 +28,25 @@ type Marble struct {
 }
 
 func setup() error {
-	// config activity to add 2 composite keys for each ledger record
+	// settings exported by Web UI contains extra nesting of mapping, which maybe a bug
 	config := `{
         "compositeKeys": {
-            "owner~name": [
-                "docType",
-                "owner",
-                "name"
-            ]
-		},
+            "mapping": {
+                "owner~name": [
+                    "docType",
+                    "owner",
+                    "name"
+                ]
+            }
+        },
 		"query": {
-			"selector": {
-				"docType": "marble",
-				"owner": "$owner",
-				"size": {
-					"$gt": "$size"
+            "mapping": {
+				"selector": {
+					"docType": "marble",
+					"owner": "$owner",
+					"size": {
+						"$gt": "$size"
+					}
 				}
 			}
 		},

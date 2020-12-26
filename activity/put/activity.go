@@ -36,7 +36,9 @@ func (a *Activity) String() string {
 // New creates a new Activity
 func New(ctx activity.InitContext) (activity.Activity, error) {
 	s := &Settings{}
+	logger.Infof("Create Put activity with InitContxt settings %v", ctx.Settings())
 	if err := s.FromMap(ctx.Settings()); err != nil {
+		logger.Errorf("failed to configure Put activity %v", err)
 		return nil, err
 	}
 
@@ -54,7 +56,7 @@ func (a *Activity) Metadata() *activity.Metadata {
 
 // Eval implements activity.Activity.Eval
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
-	logger.Infof("%v\n", a)
+	logger.Debugf("%v", a)
 
 	// check input args
 	input := &Input{}
@@ -66,7 +68,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	stub, err := common.GetChaincodeStub(ctx)
 	if err != nil || stub == nil {
 		msg := fmt.Sprintf("failed to retrieve fabric stub: %v", err)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		output := &Output{Code: 500, Message: msg}
 		ctx.SetOutputObject(output)
 		return false, err
@@ -81,7 +83,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		for _, item := range data {
 			d, ok := item.(map[string]interface{})
 			if !ok {
-				logger.Warnf("ignore bad input data %v\n", item)
+				logger.Warnf("ignore bad input data %v", item)
 				continue
 			}
 			c, v, e := a.storeData(stub, input.PrivateCollection, d)
@@ -101,7 +103,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		code, value, err = a.storeData(stub, input.PrivateCollection, data)
 	default:
 		msg := fmt.Sprintf("invalid input data type %T", input.Data)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		output := &Output{Code: 400, Message: msg}
 		ctx.SetOutputObject(output)
 		return false, err
@@ -144,7 +146,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		var keys []interface{}
 		for _, v := range keyMap {
 			if key, e := v.ToMap(); e == nil {
-				logger.Debugf("merged composite key %v\n", key)
+				logger.Debugf("merged composite key %v", key)
 				keys = append(keys, key)
 			}
 		}
@@ -174,7 +176,7 @@ func (a *Activity) storeData(stub shim.ChaincodeStubInterface, collection string
 	if len(data) == 2 && key != nil && value != nil {
 		// this is key-value for state update
 		if a.keysOnly {
-			logger.Warnf("update state key %s although activity is configured to write keys only\n", key)
+			logger.Warnf("update state key %s although activity is configured to write keys only", key)
 		}
 		stateKey, err := coerce.ToString(key)
 		if err != nil {
@@ -229,26 +231,26 @@ func (a *Activity) putData(stub shim.ChaincodeStubInterface, collection string, 
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal data: %+v", data)
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return 400, errors.Wrapf(err, msg)
 	}
 
 	// store data on ledger or private data collection
 	if err := common.PutData(stub, collection, key, jsonBytes); err != nil {
 		msg := fmt.Sprintf("failed to store data %s @ %s", key, collection)
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return 500, errors.Wrapf(err, msg)
 	}
-	logger.Debugf("stored data %s @ %s, data: %s\n", key, collection, string(jsonBytes))
+	logger.Debugf("stored data %s @ %s, data: %s", key, collection, string(jsonBytes))
 
 	// store composite keys if required
 	compKeys := common.ExtractCompositeKeys(stub, a.compositeKeys, key, data)
 	if len(compKeys) > 0 {
 		for _, k := range compKeys {
 			if err := common.PutData(stub, collection, k, nil); err != nil {
-				logger.Warnf("failed to store composite key %s @ %s: %+v\n", k, collection, err)
+				logger.Warnf("failed to store composite key %s @ %s: %+v", k, collection, err)
 			} else {
-				logger.Debugf("stored composite key %s @ %s\n", k, collection)
+				logger.Debugf("stored composite key %s @ %s", k, collection)
 			}
 		}
 	}

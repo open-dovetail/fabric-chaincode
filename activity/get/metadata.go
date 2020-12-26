@@ -1,15 +1,19 @@
 package get
 
 import (
+	"encoding/json"
+	"strings"
+
 	"github.com/project-flogo/core/data/coerce"
 )
 
 // Settings of the activity
 type Settings struct {
-	CompositeKeys map[string]interface{} `md:"compositeKeys"`
-	Query         map[string]interface{} `md:"query"`
-	KeysOnly      bool                   `md:"keysOnly"`
-	History       bool                   `md:"history"`
+	KeyName    string   `md:"keyName"`
+	Attributes []string `md:"attributes"`
+	Query      string   `md:"query"`
+	KeysOnly   bool     `md:"keysOnly"`
+	History    bool     `md:"history"`
 }
 
 // Input of the activity
@@ -30,7 +34,7 @@ type Output struct {
 
 // FromMap sets settings from a map
 // construct composite key definition of format {"index": ["field1, "field2"]}
-/* func (h *Settings) FromMap(values map[string]interface{}) error {
+func (h *Settings) FromMap(values map[string]interface{}) error {
 	var err error
 	if h.KeysOnly, err = coerce.ToBool(values["keysOnly"]); err != nil {
 		return err
@@ -38,22 +42,23 @@ type Output struct {
 	if h.History, err = coerce.ToBool(values["history"]); err != nil {
 		return err
 	}
-	if h.Query, err = coerce.ToObject(values["query"]); err != nil {
-		return err
-	}
 
-	keys, err := coerce.ToObject(values["compositeKeys"])
-	logger.Infof("converted compsiteKeys %v\n", keys)
+	query, err := mapToObject(values["query"])
 	if err != nil {
-		logger.Errorf("failed to retrieve compositeKeys: %v\n", err)
 		return err
 	}
-	if len(keys) == 0 {
-		logger.Infof("composite key is not specified\n")
-		return nil
+	if len(query) > 0 {
+		if jsonBytes, err := json.Marshal(query); err == nil {
+			h.Query = string(jsonBytes)
+			logger.Infof("configured query statement %s", h.Query)
+		}
 	}
 
-	for k, v := range keys {
+	compKeys, err := mapToObject(values["compositeKeys"])
+	if err != nil {
+		return err
+	}
+	for k, v := range compKeys {
 		var fields []string
 		values, err := coerce.ToArray(v)
 		if err != nil || len(values) == 0 {
@@ -72,17 +77,28 @@ type Output struct {
 		}
 		if len(fields) > 0 {
 			// pick only the first valid key definition
-			// Note: we use map for only a single composite key to avoid Web UI issue on exporting array settings
 			h.KeyName = k
 			h.Attributes = fields
 			logger.Infof("configured composite key %s with fields %+v", k, fields)
 			break
 		}
-		logger.Infof("composite key %s does not have attributes. ignored\n", k)
+		logger.Infof("composite key %s does not have attributes. ignored", k)
 	}
 	return nil
 }
-*/
+
+// strip extra nesting of mapping in models exported by OSS Web UI
+func mapToObject(data interface{}) (map[string]interface{}, error) {
+	val, ok := data.(map[string]interface{})
+	if !ok {
+		return coerce.ToObject(data)
+	}
+	if stripped, ok := val["mapping"]; ok && len(val) == 1 {
+		// mapping is the only element of nesting, strip it
+		return coerce.ToObject(stripped)
+	}
+	return coerce.ToObject(data)
+}
 
 // ToMap converts activity input to a map
 func (i *Input) ToMap() map[string]interface{} {

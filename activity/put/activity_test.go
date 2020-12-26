@@ -18,19 +18,21 @@ var act *Activity
 var tc *test.TestActivityContext
 
 func setup() error {
-	// config activity to add 2 composite keys for each ledger record
+	// settings exported by Web UI contains extra nesting of mapping, which maybe a bug
 	config := `{
         "compositeKeys": {
-            "owner~name": [
-                "docType",
-                "owner",
-                "name"
-            ],
-            "color~name": [
-                "docType",
-                "color",
-                "name"
-            ]
+			"mapping": {
+            	"owner~name": [
+                	"docType",
+                	"owner",
+                	"name"
+            	],
+            	"color~name": [
+                	"docType",
+                	"color",
+                	"name"
+				]
+			}
 		},
 		"keysOnly": false
 	}`

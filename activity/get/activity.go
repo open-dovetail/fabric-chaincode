@@ -13,8 +13,6 @@ import (
 	"github.com/open-dovetail/fabric-chaincode/common"
 	"github.com/pkg/errors"
 	"github.com/project-flogo/core/activity"
-	"github.com/project-flogo/core/data/coerce"
-	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/support/log"
 )
 
@@ -49,56 +47,19 @@ func (a *Activity) String() string {
 // New creates a new Activity
 func New(ctx activity.InitContext) (activity.Activity, error) {
 	s := &Settings{}
-	ctx.Logger().Infof("Create Get activity with InitContxt settings %v\n", ctx.Settings())
-	if err := metadata.MapToStruct(ctx.Settings(), s, true); err != nil {
-		ctx.Logger().Errorf("failed to configure get activity %v\n", err)
+	logger.Infof("Create Get activity with InitContxt settings %v", ctx.Settings())
+	if err := s.FromMap(ctx.Settings()); err != nil {
+		logger.Errorf("failed to configure Get activity %v", err)
 		return nil, err
 	}
 
-	queryStmt := ""
-	if s.Query != nil {
-		if jsonBytes, err := json.Marshal(s.Query); err == nil {
-			queryStmt = string(jsonBytes)
-		}
-	}
-
-	var ck string
-	var attrs []string
-	for k, v := range s.CompositeKeys {
-		var fields []string
-		values, err := coerce.ToArray(v)
-		if err != nil || len(values) == 0 {
-			ctx.Logger().Warnf("ignored composite key setting for key %s. error: %+v", k, err)
-			continue
-		}
-		for _, n := range values {
-			if f, ok := n.(string); ok && len(f) > 0 {
-				path := f
-				if !strings.HasPrefix(f, "$.") {
-					// make it valid JsonPath expression
-					path = "$." + f
-				}
-				fields = append(fields, path)
-			}
-		}
-		if len(fields) > 0 {
-			// pick only the first valid key definition
-			// Note: we use map for only a single composite key to avoid Web UI issue on exporting array settings
-			ck = k
-			attrs = fields
-			ctx.Logger().Infof("configured composite key %s with fields %+v", k, fields)
-			break
-		}
-		ctx.Logger().Infof("composite key %s does not have attributes. ignored\n", k)
-	}
-	act := &Activity{
-		keyName:    ck,
-		attributes: attrs,
-		query:      queryStmt,
+	return &Activity{
+		keyName:    s.KeyName,
+		attributes: s.Attributes,
+		query:      s.Query,
 		keysOnly:   s.KeysOnly,
 		history:    s.History,
-	}
-	return act, nil
+	}, nil
 }
 
 // Metadata implements activity.Activity.Metadata
@@ -108,7 +69,7 @@ func (a *Activity) Metadata() *activity.Metadata {
 
 // Eval implements activity.Activity.Eval
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
-	logger.Infof("%v\n", a)
+	logger.Debugf("%v", a)
 
 	// check input args
 	input := &Input{}
@@ -120,7 +81,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	stub, err := common.GetChaincodeStub(ctx)
 	if err != nil || stub == nil {
 		msg := fmt.Sprintf("failed to retrieve fabric stub: %v", err)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		output := &Output{Code: 500, Message: msg}
 		ctx.SetOutputObject(output)
 		return false, err
@@ -151,7 +112,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		code, value, bookmark, err = a.retrieveData(stub, input.PrivateCollection, input.Data, input.PageSize, input.Bookmark)
 	default:
 		msg := fmt.Sprintf("invalid input data type %T", input.Data)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		output := &Output{Code: 400, Message: msg}
 		ctx.SetOutputObject(output)
 		return false, err
@@ -235,7 +196,7 @@ func (a *Activity) retrieveData(stub shim.ChaincodeStubInterface, collection str
 		// retrieve state by a key
 		if a.keysOnly {
 			msg := fmt.Sprintf("cannot retrieve state for key %v while keysOnly is true", data)
-			logger.Errorf("%s\n", msg)
+			logger.Errorf("%s", msg)
 			return 400, nil, "", errors.New(msg)
 		}
 		code, value, err := a.retrieveDataByKey(stub, collection, data.(string))
@@ -259,7 +220,7 @@ func (a *Activity) retrieveData(stub shim.ChaincodeStubInterface, collection str
 		}
 	default:
 		msg := fmt.Sprintf("invalid input data type %T", data)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 400, nil, "", errors.New(msg)
 	}
 }
@@ -280,15 +241,15 @@ func (a *Activity) retrieveDataByKey(stub shim.ChaincodeStubInterface, collectio
 	}
 	if err != nil {
 		msg := fmt.Sprintf("failed to get data '%s @ %s'", key, collection)
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return 500, nil, errors.Wrapf(err, msg)
 	}
 	if jsonBytes == nil {
-		msg := fmt.Sprintf("no data found for '%s @ %s'\n", key, collection)
-		logger.Debugf("%s'\n", msg)
+		msg := fmt.Sprintf("no data found for '%s @ %s'", key, collection)
+		logger.Debugf("%s'", msg)
 		return 404, nil, errors.New(msg)
 	}
-	logger.Debugf("retrieved data %s @ %s, data: %s\n", key, collection, string(jsonBytes))
+	logger.Debugf("retrieved data %s @ %s, data: %s", key, collection, string(jsonBytes))
 
 	return 200, &StateData{Key: key, Value: jsonBytes}, nil
 }
@@ -299,12 +260,12 @@ func (a *Activity) retrieveDataByKey(stub shim.ChaincodeStubInterface, collectio
 func (a *Activity) retrieveDataByQuery(stub shim.ChaincodeStubInterface, collection string, parameters interface{}, pageSize int32, bookmark string) (int, []interface{}, string, error) {
 	if len(a.query) == 0 {
 		msg := "rich query is not defined"
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 400, nil, "", errors.New(msg)
 	}
 	if a.keysOnly {
 		msg := "rich query cannot be executed for composite keys"
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 400, nil, "", errors.New(msg)
 	}
 	qrystmt := a.query
@@ -316,7 +277,7 @@ func (a *Activity) retrieveDataByQuery(stub shim.ChaincodeStubInterface, collect
 	iter, queryMd, err := common.GetDataByQuery(stub, collection, qrystmt, pageSize, bookmark)
 	if err != nil {
 		msg := fmt.Sprintf("failed rich query '%s'; error: %v", qrystmt, err)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 500, nil, "", errors.New(msg)
 	}
 	defer iter.Close()
@@ -326,7 +287,7 @@ func (a *Activity) retrieveDataByQuery(stub shim.ChaincodeStubInterface, collect
 	for iter.HasNext() {
 		resp, err := iter.Next()
 		if err != nil {
-			logger.Warnf("ignore query iterator error %v\n", err)
+			logger.Warnf("ignore query iterator error %v", err)
 			continue
 		}
 		values = append(values, &StateData{
@@ -343,7 +304,7 @@ func (a *Activity) retrieveDataByQuery(stub shim.ChaincodeStubInterface, collect
 
 func prepareQueryStatement(query string, params map[string]interface{}) string {
 	if len(params) == 0 {
-		logger.Debug("no parameter is defined for query\n")
+		logger.Debug("no parameter is defined for query")
 		return query
 	}
 
@@ -357,7 +318,7 @@ func prepareQueryStatement(query string, params map[string]interface{}) string {
 			value = fmt.Sprintf("%v", v)
 		default:
 			if jsonBytes, err := json.Marshal(v); err != nil {
-				logger.Debugf("failed to marshal value %v: %+v\n", v, err)
+				logger.Debugf("failed to marshal value %v: %+v", v, err)
 				value = "null"
 			} else {
 				value = string(jsonBytes)
@@ -365,7 +326,7 @@ func prepareQueryStatement(query string, params map[string]interface{}) string {
 		}
 		args = append(args, fmt.Sprintf(`"$%s"`, k), value)
 	}
-	logger.Debugf("query replacer args %v\n", args)
+	logger.Debugf("query replacer args %v", args)
 
 	// replace query parameters with values
 	r := strings.NewReplacer(args...)
@@ -380,7 +341,7 @@ func (a *Activity) retrieveDataByRange(stub shim.ChaincodeStubInterface, collect
 	if a.keysOnly {
 		// when keysOnly is set, cannot run range query
 		msg := "range query does not work for composite keys"
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 400, nil, "", errors.New(msg)
 	}
 
@@ -398,7 +359,7 @@ func (a *Activity) retrieveDataByRange(stub shim.ChaincodeStubInterface, collect
 
 	if err != nil {
 		msg := fmt.Sprintf("range query error: %v", err)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 500, nil, "", errors.New(msg)
 	}
 	defer iter.Close()
@@ -408,7 +369,7 @@ func (a *Activity) retrieveDataByRange(stub shim.ChaincodeStubInterface, collect
 	for iter.HasNext() {
 		resp, err := iter.Next()
 		if err != nil {
-			logger.Warnf("ignore query iterator error %v\n", err)
+			logger.Warnf("ignore query iterator error %v", err)
 			continue
 		}
 		values = append(values, &StateData{
@@ -430,14 +391,14 @@ func (a *Activity) retrieveDataByRange(stub shim.ChaincodeStubInterface, collect
 func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, collection string, data map[string]interface{}, pageSize int32, bookmark string) (int, []interface{}, string, error) {
 	if len(a.keyName) == 0 || len(data) == 0 {
 		msg := fmt.Sprintf("composite key %s and data %v are not specified for partial key query", a.keyName, data)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 400, nil, "", errors.New(msg)
 	}
 
 	fields := common.ExtractDataAttributes(a.attributes, data)
 	if len(fields) == 0 {
-		msg := fmt.Sprintf("no field specified for composite key %s with attributes %v in data %+v\n", a.keyName, a.attributes, data)
-		logger.Errorf("%s\n", msg)
+		msg := fmt.Sprintf("no field specified for composite key %s with attributes %v in data %+v", a.keyName, a.attributes, data)
+		logger.Errorf("%s", msg)
 		return 404, nil, "", errors.New(msg)
 	}
 
@@ -445,7 +406,7 @@ func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, co
 	iter, queryMd, err := common.GetCompositeKeys(stub, collection, a.keyName, fields, pageSize, bookmark)
 	if err != nil {
 		msg := fmt.Sprintf("partial key query error: %v", err)
-		logger.Errorf("%s\n", msg)
+		logger.Errorf("%s", msg)
 		return 500, nil, "", errors.New(msg)
 	}
 	defer iter.Close()
@@ -454,7 +415,7 @@ func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, co
 	for iter.HasNext() {
 		resp, err := iter.Next()
 		if err != nil {
-			logger.Warnf("ignore key iterator error %v\n", err)
+			logger.Warnf("ignore key iterator error %v", err)
 			continue
 		}
 		keys = append(keys, resp.Key)
@@ -473,7 +434,7 @@ func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, co
 	for _, ck := range keys {
 		k, v, err := common.GetData(stub, collection, ck.(string))
 		if err != nil {
-			logger.Warnf("failed to data for composite key %s\n", ck)
+			logger.Warnf("failed to data for composite key %s", ck)
 			continue
 		}
 		values = append(values, &StateData{
@@ -490,7 +451,7 @@ func retrieveHistory(stub shim.ChaincodeStubInterface, key string) ([]byte, erro
 	resultsIterator, err := stub.GetHistoryForKey(key)
 	if err != nil {
 		msg := "error retrieving history"
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return nil, errors.Wrapf(err, msg)
 	}
 	defer resultsIterator.Close()
@@ -498,7 +459,7 @@ func retrieveHistory(stub shim.ChaincodeStubInterface, key string) ([]byte, erro
 	jsonBytes, err := constructHistoryResponse(resultsIterator)
 	if err != nil {
 		msg := "history iterator error"
-		logger.Errorf("%s: %+v\n", msg, err)
+		logger.Errorf("%s: %+v", msg, err)
 		return nil, errors.Wrapf(err, msg)
 	}
 
