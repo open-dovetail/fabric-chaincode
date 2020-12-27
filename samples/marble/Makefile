@@ -26,7 +26,8 @@ deploy: $(APP_NAME)_1.0.tar.gz
 
 .PHONY: start
 start:
-	cd $(FAB_PATH)/test-network && ./network.sh up createChannel -s couchdb
+	cd $(FAB_PATH)/test-network && ./network.sh up createChannel -ca -s couchdb
+	$(SRC_PATH)/gen-certs.sh
 
 .PHONY: cc-init
 cc-init: $(FAB_PATH)/test-network/cc-init-marble.sh

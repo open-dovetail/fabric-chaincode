@@ -208,7 +208,7 @@ func (t *Trigger) extractCID(stub shim.ChaincodeStubInterface) map[string]string
 	// retrieve custom attributes from client identity
 	if t.cidAttrs != nil {
 		for _, k := range t.cidAttrs {
-			if v, ok, err := c.GetAttributeValue(k); err == nil && ok {
+			if v, ok, err := c.GetAttributeValue(k); err == nil && ok && len(v) > 0 {
 				client[k] = v
 			}
 		}
