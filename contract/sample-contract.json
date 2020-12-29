@@ -1,216 +1,390 @@
 {
-    "info": {
-        "title": "Sample contract API",
-        "version": "v0.0.1"
-    },
-    "imports": [
-        "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
-        "github.com/open-dovetail/dovetail-contrib/activity/jsonmapper",
-        "github.com/open-dovetail/fabric-chaincode/activity/get",
-        "github.com/open-dovetail/fabric-chaincode/activity/put",
-        "github.com/open-dovetail/fabric-chaincode/activity/query",
-        "github.com/open-dovetail/fabric-chaincode/activity/gethistory",
-        "github.com/project-flogo/contrib/activity/error"
-    ],
-    "contracts": {
-        "demo-contract": {
-            "name": "Marble Exchange",
-            "transactions": [{
-                    "name": "createMarble",
-                    "parameters": [{
-                            "name": "name",
-                            "schema": {
-                                "type": "string"
-                            }
-                        },
-                        {
-                            "name": "color",
-                            "schema": {
-                                "type": "string"
-                            }
-                        },
-                        {
-                            "name": "size",
-                            "schema": {
-                                "type": "integer"
-                            }
-                        },
-                        {
-                            "name": "owner",
-                            "schema": {
-                                "type": "string"
-                            }
-                        }
-                    ],
-                    "returns": {
-                        "$ref": "#/components/schemas/marble"
-                    },
-                    "rules": [{
-                            "description": "reject request if client is not exchange admin",
-                            "condition": {
-                                "description": "client is not admin",
-                                "expr": "$.cid.role != \"admin\""
-                            },
-                            "actions": [{
-                                "activity": "#error",
-                                "terminate": true,
-                                "code": 400,
-                                "input": {
-                                    "message": "user is not authorized to create marble"
-                                }
-                            }]
-                        },
-                        {
-                            "description": "create or update ledger state",
-                            "condition": {
-                                "description": "client is admin"
-                            },
-                            "actions": [{
-                                    "activity": "#jsonmapper",
-                                    "name": "mapper",
-                                    "input": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/marble"
-                                        }
-                                    }
-                                },
-                                {
-                                    "activity": "#put",
-                                    "terminate": true,
-                                    "input": {
-                                        "key": "=$.name",
-                                        "data": "=$mapper.result"
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "name": "queryMarbleByOwner",
-                    "parameters": [{
-                        "name": "owner",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }],
-                    "returns": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/marbleKeyValue"
-                        }
-                    },
-                    "rules": [{
-                            "description": "reject request if client is not the owner",
-                            "condition": {
-                                "description": "client name does not match marble owner",
-                                "expr": "$.cid.name != $.owner"
-                            },
-                            "actions": [{
-                                "activity": "#error",
-                                "terminate": true,
-                                "code": 400,
-                                "input": {
-                                    "message": "user is not authorized to execute the query"
-                                }
-                            }]
-                        },
-                        {
-                            "description": "query the ledger state",
-                            "condition": {
-                                "description": "client name matches marble owner"
-                            },
-                            "actions": [{
-                                "activity": "#query",
-                                "terminate": true,
-                                "config": {
-                                    "query": "{ \"selector\": { \"docType\": \"marble\", \"owner\": \"$owner\" } }"
-                                },
-                                "input": {
-                                    "owner": "=$.owner"
-                                }
-                            }]
-                        }
-                    ]
-                },
-                {
-                    "name": "marbleHistory",
-                    "parameters": [{
-                        "name": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }],
-                    "returns": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/marbleHistory"
-                        }
-                    },
-                    "rules": [{
-                        "description": "retrieve ledger history of a specified marble",
-                        "actions": [{
-                            "activity": "#gethistory",
-                            "terminate": true,
-                            "input": {
-                                "key": "=$.name"
-                            }
-                        }]
-                    }]
-                }
-            ]
-        }
-    },
-    "components": {
-        "schemas": {
-            "marble": {
-                "$id": "marble",
-                "properties": {
-                    "docType": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "color": {
-                        "type": "string"
-                    },
-                    "size": {
-                        "type": "integer"
-                    },
-                    "owner": {
-                        "type": "string"
-                    }
-                }
+  "info": {
+    "title": "Sample contract API",
+    "version": "v0.0.1"
+  },
+  "imports": [
+    "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+    "github.com/open-dovetail/fabric-chaincode/activity/get",
+    "github.com/open-dovetail/fabric-chaincode/activity/put",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "contracts": {
+    "demo-contract": {
+      "name": "Marble Exchange",
+      "cid": ["alias", "role", "email"],
+      "transactions": [{
+          "name": "createMarble",
+          "parameters": [{
+              "name": "name",
+              "schema": {
+                "type": "string"
+              }
             },
-            "marbleKeyValue": {
-                "$id": "marbleKeyValue",
-                "properties": {
-                    "key": {
-                        "type": "string"
-                    },
-                    "value": {
-                        "$ref": "#/components/schemas/marble"
-                    }
-                }
+            {
+              "name": "color",
+              "schema": {
+                "type": "string"
+              }
             },
-            "marbleHistory": {
-                "$id": "marbleHistory",
-                "properties": {
-                    "txID": {
-                        "type": "string"
-                    },
-                    "txTime": {
-                        "type": "string"
-                    },
-                    "isDeleted": {
-                        "type": "boolean"
-                    },
-                    "value": {
-                        "$ref": "#/components/schemas/marble"
-                    }
-                }
+            {
+              "name": "size",
+              "schema": {
+                "type": "integer"
+              }
+            },
+            {
+              "name": "owner",
+              "schema": {
+                "type": "string"
+              }
             }
+          ],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/marbleKeyValue"
+            }
+          },
+          "rules": [{
+              "description": "reject request if client's role is not 'broker'",
+              "condition": {
+                "description": "client is not a broker",
+                "expr": "$flow.cid.role != \"broker\""
+              },
+              "actions": [{
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": 403,
+                    "message": "=string.concat($flow.cid.cn, \" is not authorized to create marble\")"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "create or update ledger state",
+              "condition": {
+                "description": "client is a broker",
+                "expr": "$flow.cid.role == \"broker\""
+              },
+              "actions": [{
+                  "activity": "#put",
+                  "name": "put_1",
+                  "config": {
+                    "compositeKeys": {
+                      "owner~name": [
+                        "docType",
+                        "owner",
+                        "name"
+                      ],
+                      "color~name": [
+                        "docType",
+                        "color",
+                        "name"
+                      ]
+                    },
+                    "createOnly": true
+                  },
+                  "input": {
+                    "schema": {
+                      "data": {
+                        "$ref": "#/components/schemas/marbleKeyValue"
+                      }
+                    },
+                    "mapping": {
+                      "data": {
+                        "key": "=$flow.parameters.name",
+                        "value": {
+                          "docType": "marble",
+                          "name": "=$flow.parameters.name",
+                          "color": "=$flow.parameters.color",
+                          "size": "=$flow.parameters.size",
+                          "owner": "=$flow.parameters.owner"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "activity": "#actreturn",
+                  "input": {
+                    "mapping": {
+                      "status": "=$activity[put_1].code",
+                      "message": "=$activity[put_1].message",
+                      "returns": "=$activity[put_1].result"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "queryMarblesByOwner",
+          "parameters": [{
+            "name": "owner",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/marbleKeyValue"
+            }
+          },
+          "rules": [{
+              "description": "reject request if client is not the owner of marbles",
+              "condition": {
+                "description": "client name does not match marble owner",
+                "expr": "$flow.cid.role == \"owner\" && $flow.cid.alias != $flow.parameters.owner"
+              },
+              "actions": [{
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": 403,
+                    "message": "=string.concat($flow.cid.cn, \" is not authorized to view marbles of owner \", $flow.parameters.owner)"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "query the ledger state",
+              "condition": {
+                "description": "client name matches marble owner",
+                "expr": "$flow.cid.role != \"owner\" || $flow.cid.alias == $flow.parameters.owner"
+              },
+              "actions": [{
+                  "activity": "#get",
+                  "name": "get_1",
+                  "config": {
+                    "query": {
+                      "selector": {
+                        "docType": "marble",
+                        "owner": "$owner"
+                      }
+                    }
+                  },
+                  "input": {
+                    "mapping": {
+                      "owner": "=$flow.parameters.owner"
+                    }
+                  }
+                },
+                {
+                  "activity": "#actreturn",
+                  "input": {
+                    "mapping": {
+                      "status": "=$activity[get_1].code",
+                      "message": "=$activity[get_1].message",
+                      "returns": "=$activity[get_1].result"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "transferMarble",
+          "parameters": [{
+              "name": "name",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "newOwner",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/marbleKeyValue"
+            }
+          },
+          "rules": [{
+              "description": "retrieve marble of specified name",
+              "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "input": {
+                  "mapping": {
+                    "data": "=$flow.parameters.name"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "return not found if marble does not exist",
+              "condition": {
+                "description": "no marble found for specified name",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code != 200"
+              },
+              "actions": [{
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": 404,
+                    "message": "=string.concat(\"Marble of name \", $flow.parameters.name, \" is not found\")"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "reject request if client is not the owner of the specified marble",
+              "condition": {
+                "description": "client is not marble owner",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code == 200 && $flow.cid.alias != $activity[get_1].result[0].owner"
+              },
+              "actions": [{
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": 403,
+                    "message": "=string.concat($flow.cid.cn, \" is not the owner of \", $flow.parameters.name)"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "update marble to set new owner",
+              "condition": {
+                "description": "client is the marble owner",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code == 200 && $flow.cid.alias == $activity[get_1].result[0].owner"
+              },
+              "actions": [{
+                  "activity": "#delete",
+                  "description": "delete composite key for older owner",
+                  "config": {
+                    "compositeKeys": {
+                      "owner~name": [
+                        "docType",
+                        "owner",
+                        "name"
+                      ]
+                    },
+                    "keysOnly": true
+                  },
+                  "input": {
+                    "mapping": {
+                      "data": {
+                        "docType": "=$activity[get_1].result[0].value.docType",
+                        "name": "=$activity[get_1].result[0].value.name",
+                        "owner": "=$activity[get_1].result[0].value.owner"
+                      }
+                    }
+                  }
+                },
+                {
+                  "activity": "#put",
+                  "description": "update new owner and associated composite key",
+                  "name": "put_1",
+                  "config": {
+                    "compositeKeys": {
+                      "owner~name": [
+                        "docType",
+                        "owner",
+                        "name"
+                      ]
+                    }
+                  },
+                  "input": {
+                    "schema": {
+                      "data": {
+                        "$ref": "#/components/schemas/marbleKeyValue"
+                      }
+                    },
+                    "mapping": {
+                      "data": {
+                        "key": "=$activity[get_1].result[0].value.name",
+                        "value": {
+                          "docType": "=$activity[get_1].result[0].value.docType",
+                          "name": "=$activity[get_1].result[0].value.name",
+                          "color": "=$activity[get_1].result[0].value.color",
+                          "size": "=$activity[get_1].result[0].value.size",
+                          "owner": "=$flow.parameters.newOwner"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "activity": "#actreturn",
+                  "input": {
+                    "mapping": {
+                      "status": "=$activity[put_1].code",
+                      "message": "=$activity[put_1].message",
+                      "returns": "=$activity[put_1].result"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
         }
+      ]
     }
+  },
+  "components": {
+    "schemas": {
+      "marble": {
+        "$id": "marble",
+        "properties": {
+          "docType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string"
+          }
+        }
+      },
+      "marbleKeyValue": {
+        "$id": "marbleKeyValue",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/marble"
+          }
+        }
+      },
+      "marbleHistory": {
+        "$id": "marbleHistory",
+        "properties": {
+          "txID": {
+            "type": "string"
+          },
+          "txTime": {
+            "type": "string"
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "value": {
+            "$ref": "#/components/schemas/marble"
+          }
+        }
+      }
+    }
+  }
 }
