@@ -241,7 +241,7 @@
             {
               "description": "reject request if client is not the owner of the specified marble",
               "condition": {
-                "description": "client is not marble owner",
+                "description": "client does not marble owner",
                 "prerequisite": "get_1",
                 "expr": "$activity[get_1].code == 200 && $flow.cid.alias != $activity[get_1].result[0].owner"
               },
