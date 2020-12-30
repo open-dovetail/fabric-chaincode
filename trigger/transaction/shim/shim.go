@@ -22,6 +22,7 @@ var logger = log.ChildLogger(log.RootLogger(), "fabric-transaction-shim")
 func init() {
 	os.Setenv("FLOGO_RUNNER_TYPE", "DIRECT")
 	os.Setenv("FLOGO_ENGINE_STOP_ON_ERROR", "false")
+	os.Setenv("FLOGO_MAPPING_IGNORE_ERRORS", "true")
 
 	// necessary to access schema of complex object attributes from activity context
 	schema.Enable()
