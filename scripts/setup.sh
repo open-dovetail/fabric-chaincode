@@ -25,9 +25,11 @@ function checkGo {
 function installFlogo {
   flogo create -h | grep mod
   if [ "$?" -ne 0 ]; then
-    echo "install Flogo CLI"
+    echo "install Flogo CLI with open-dovetail plugin"
     cd ${SCRIPT_DIR}/tools
-    go install github.com/project-flogo/cli/cmd/flogo
+    go mod vendor
+    cp ${SCRIPT_DIR}/plugin.go vendor/github.com/project-flogo/cli/cmd/flogo
+    go install -mod vendor github.com/project-flogo/cli/cmd/flogo
     flogo create -h | grep mod
     if [ "$?" -ne 0 ]; then
       echo "Failed to install Flog CLI"

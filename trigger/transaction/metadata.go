@@ -138,13 +138,16 @@ func (o *Output) ToMap() map[string]interface{} {
 func (r *Reply) FromMap(values map[string]interface{}) error {
 	var err error
 	if r.Status, err = coerce.ToInt(values["status"]); err != nil {
-		return err
+		logger.Errorf("Failed to map returned status: %+v", err)
+		r.Status = 500
 	}
 	if r.Message, err = coerce.ToString(values["message"]); err != nil {
+		logger.Infof("Failed to map returned status: %+v", err)
 		r.Message = ""
 	}
 	if r.Returns, err = coerce.ToAny(values["returns"]); err != nil {
-		return err
+		logger.Infof("Failed to map returned value: %+v", err)
+		r.Returns = nil
 	}
 	return nil
 }
