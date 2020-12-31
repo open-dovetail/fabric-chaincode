@@ -5,9 +5,12 @@
   },
   "imports": [
     "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+    "github.com/open-dovetail/fabric-chaincode/activity/delete",
     "github.com/open-dovetail/fabric-chaincode/activity/get",
     "github.com/open-dovetail/fabric-chaincode/activity/put",
+    "github.com/project-flogo/contrib/activity/noop",
     "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/flow",
     "github.com/project-flogo/contrib/function/string"
   ],
   "contracts": {
@@ -243,7 +246,7 @@
               "condition": {
                 "description": "client does not marble owner",
                 "prerequisite": "get_1",
-                "expr": "$activity[get_1].code == 200 && $flow.cid.alias != $activity[get_1].result[0].owner"
+                "expr": "$activity[get_1].code == 200 && $flow.cid.alias != $activity[get_1].result[0].value.owner"
               },
               "actions": [{
                 "activity": "#actreturn",
@@ -260,7 +263,7 @@
               "condition": {
                 "description": "client is the marble owner",
                 "prerequisite": "get_1",
-                "expr": "$activity[get_1].code == 200 && $flow.cid.alias == $activity[get_1].result[0].owner"
+                "expr": "$activity[get_1].code == 200 && $flow.cid.alias == $activity[get_1].result[0].value.owner"
               },
               "actions": [{
                   "activity": "#delete",

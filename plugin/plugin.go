@@ -10,9 +10,11 @@ import (
 )
 
 var contractFile string
+var appFile string
 
 func init() {
 	contract2flow.Flags().StringVarP(&contractFile, "contract", "c", "contract.json", "specify a contract.json to create Flogo app from")
+	contract2flow.Flags().StringVarP(&appFile, "app", "o", "app.json", "specify the output file app.json")
 	common.RegisterPlugin(contract2flow)
 }
 
@@ -25,9 +27,18 @@ var contract2flow = &cobra.Command{
 		fmt.Println("Create Flogo app from", contractFile)
 		spec, err := contract.ReadContract(contractFile)
 		if err != nil {
-			fmt.Printf("Failed read and parse contract file %s: %+v\n", contractFile, err)
+			fmt.Printf("Failed to read and parse contract file %s: %+v\n", contractFile, err)
 			os.Exit(1)
 		}
-		fmt.Printf("parsed contract: %v\n", spec)
+		app, err := spec.ToAppConfig()
+		if err != nil {
+			fmt.Printf("Failed to convert contract file %s: %+v\n", contractFile, err)
+			os.Exit(1)
+		}
+		if err = app.WriteAppConfig(appFile); err != nil {
+			fmt.Printf("Failed to write app config file %s: %+v\n", appFile, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Successfully written app config file %s\n", appFile)
 	},
 }

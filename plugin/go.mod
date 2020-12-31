@@ -5,6 +5,7 @@ go 1.14
 replace github.com/project-flogo/cli => github.com/yxuco/cli v0.10.1-0.20201211003232-196e588c1452
 
 require (
+	github.com/pkg/errors v0.9.1
 	github.com/project-flogo/cli v0.10.0
 	github.com/project-flogo/core v1.2.0
 	github.com/project-flogo/flow v1.2.0
