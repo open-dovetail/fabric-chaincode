@@ -1,6 +1,6 @@
 # marble
 
-This example uses the [Open-source Flogo](http://www.flogo.io/) to implement a [Hyperledger Fabric](https://www.hyperledger.org/projects/fabric) sample chaincode [marbles02](https://github.com/hyperledger/fabric-samples/tree/master/chaincode/marbles02/go). The sample demonstrates basic features of the Hyperledger Fabric, including creeation and update of states and composite-keys, as well as different types of queries for state and history with pagination. The chaincode is implemented visually by using [Flogo Web UI](https://github.com/project-flogo/flogo-web).
+This example uses the [Open-source Flogo](http://www.flogo.io/) to implement a [Hyperledger Fabric](https://www.hyperledger.org/projects/fabric) sample chaincode [marbles02](https://github.com/hyperledger/fabric-samples/tree/master/chaincode/marbles02/go). The sample demonstrates basic features of the Hyperledger Fabric, including creeation and update of states and composite-keys, as well as different types of queries for state and history with pagination. The chaincode is extended to illustrate Attribute-Based Access Control (ABAC), and it is implemented visually by using [Flogo Web UI](https://github.com/project-flogo/flogo-web).
 
 ## Prerequisite
 
