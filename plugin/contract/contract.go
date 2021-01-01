@@ -66,7 +66,7 @@ type Action struct {
 	Description string                 `json:"description,omitempty"`
 	Name        string                 `json:"name,omitempty"`
 	Config      map[string]interface{} `json:"config,omitempty"`
-	Input       *Input                 `json:"input"`
+	Input       *Input                 `json:"input,omitempty"`
 }
 
 // Input defines schema and mapping of an activity input

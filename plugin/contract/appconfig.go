@@ -3,14 +3,19 @@ package contract
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/project-flogo/core/action"
+	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/app"
 	"github.com/project-flogo/core/app/resource"
+	"github.com/project-flogo/core/data"
+	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/trigger"
 	"github.com/project-flogo/flow/definition"
 )
@@ -102,12 +107,25 @@ func (s *Spec) ToAppConfig() (*AppConfig, error) {
 		AppModel:    "1.1.0",
 		Imports:     s.Imports,
 	}
-	c := &AppConfig{Config: ac}
+	c := &AppConfig{
+		Config:    ac,
+		Resources: make(map[string]*definition.DefinitionRep),
+	}
+	// create one trigger with one handler per transaction
 	trig, err := con.ToTrigger()
 	if err != nil {
 		return nil, err
 	}
 	ac.Triggers = []*trigger.Config{trig}
+
+	// create a flow resource per transaction
+	for _, tx := range con.Transactions {
+		id, res, err := tx.ToResource()
+		if err != nil {
+			return nil, err
+		}
+		c.Resources[id] = res
+	}
 	return c, nil
 }
 
@@ -198,4 +216,275 @@ func ToSnakeCase(str string) string {
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	snake = strings.ReplaceAll(snake, "-", "_")
 	return strings.ToLower(snake)
+}
+
+// noops caches activity followed by noop activity for branching
+type actNoop struct {
+	action *Action
+	noop   string
+	expr   string
+	links  []*actNoop
+}
+
+var noops map[string]*actNoop
+
+// actSeq caches current sequence number of an activity type
+var actSeq map[string]int
+
+const (
+	startNoop = "_"
+	noopRef   = "#noop"
+	returnRef = "#actreturn"
+)
+
+func resourceTasks() []*definition.TaskRep {
+	var tasks []*definition.TaskRep
+	for _, v := range noops {
+		act := v.action
+		actCfg := &activity.Config{
+			Ref: act.Activity,
+		}
+		if act.Activity == returnRef {
+			// #actreturn maps input onto settings
+			actCfg.Settings = map[string]interface{}{"mappings": act.Input.Mapping}
+		} else {
+			actCfg.Settings = act.toActivitySetting()
+			actCfg.Input = act.toActivityInput()
+		}
+		tsk := &definition.TaskRep{
+			ID:             act.Name,
+			Name:           act.Name,
+			ActivityCfgRep: actCfg,
+		}
+		tasks = append(tasks, tsk)
+	}
+	return tasks
+}
+
+func (a *Action) toActivitySetting() map[string]interface{} {
+	if len(a.Config) == 0 {
+		return nil
+	}
+
+	settings := make(map[string]interface{})
+	// for OSS Flogo add "mapping" nesting for objects and arrays
+	for k, v := range a.Config {
+		switch v.(type) {
+		case map[string]interface{}:
+			settings[k] = map[string]interface{}{"mapping": v}
+		case []interface{}:
+			settings[k] = map[string]interface{}{"mapping": v}
+		default:
+			settings[k] = v
+		}
+	}
+
+	// TODO: for Flogo enterprise, serialize it
+	return settings
+}
+
+func (a *Action) toActivityInput() map[string]interface{} {
+	if a.Input == nil || len(a.Input.Mapping) == 0 {
+		return nil
+	}
+
+	input := make(map[string]interface{})
+	// add mapping nesting for object mapper
+	for k, v := range a.Input.Mapping {
+		switch v.(type) {
+		case map[string]interface{}:
+			input[k] = map[string]interface{}{"mapping": v}
+		default:
+			input[k] = v
+		}
+	}
+
+	return input
+}
+
+func resourceLinks() []*definition.LinkRep {
+	var links []*definition.LinkRep
+	for _, v := range noops {
+		if v.action == nil {
+			// skip startup node
+			continue
+		}
+		for _, l := range v.links {
+			r := &definition.LinkRep{
+				FromID: v.action.Name,
+				ToID:   l.action.Name,
+			}
+			if len(l.expr) > 0 {
+				r.Type = "expression"
+				r.Value = l.expr
+			}
+			links = append(links, r)
+		}
+	}
+	return links
+}
+
+func (tx *Transaction) initTxnResource() (err error) {
+	noops = make(map[string]*actNoop)
+	actSeq = make(map[string]int)
+	// collect used activity seq numbers
+	for _, r := range tx.Rules {
+		for _, a := range r.Actions {
+			a.initActivitySeq()
+		}
+	}
+	// register activity and branching noops
+	for _, r := range tx.Rules {
+		var prev *actNoop
+		var expr string
+		if r.Condition != nil {
+			p := r.Condition.Prerequisite
+			if len(p) == 0 {
+				p = startNoop
+			}
+			if prev, err = addNoop(p); err != nil {
+				return err
+			}
+			expr = r.Condition.Expr
+			if len(expr) == 0 {
+				// include description for user to edit concrete condition expr
+				expr = fmt.Sprintf("\"changeme\" == \"%s\"", r.Condition.Description)
+			}
+		}
+		for _, a := range r.Actions {
+			prev = a.linkAction(prev, expr)
+			expr = "" // use condition expre only for the first action
+		}
+	}
+	return nil
+}
+
+// add noop for branching if action is not #log or #noop
+func addNoop(name string) (*actNoop, error) {
+	n, ok := noops[name]
+	if name == startNoop {
+		// create noop for branch from flow startup
+		if !ok {
+			n = &actNoop{
+				action: &Action{
+					Activity: noopRef,
+					Name:     nextActivityID(noopRef),
+				},
+			}
+			noops[name] = n
+		}
+		return n, nil
+	}
+
+	if !ok || n.action == nil {
+		// prerequisite action not defined
+		return nil, errors.Errorf("prerequisite action %s is not defined in contract spec", name)
+	}
+
+	if n.action.Activity == "#log" || n.action.Activity == "#noop" {
+		// do not add noop for branching from #log or #noop
+		return n, nil
+	}
+
+	if len(n.noop) > 0 {
+		// return the noop previously set already
+		return noops[n.noop], nil
+	}
+
+	// create noop action
+	n.noop = nextActivityID(noopRef)
+	an := &actNoop{
+		action: &Action{
+			Activity: noopRef,
+			Name:     n.noop,
+		},
+	}
+
+	n.links = append(n.links, an)
+	noops[n.noop] = an
+	return an, nil
+}
+
+// register named activity and collect max sequence number used by named activities
+func (a *Action) initActivitySeq() {
+	if len(a.Activity) == 0 || len(a.Name) == 0 {
+		return
+	}
+
+	// register named activity
+	noops[a.Name] = &actNoop{action: a}
+
+	if !strings.HasPrefix(a.Name, a.Activity[1:]+"_") {
+		// not a pattern for activity sequence
+		return
+	}
+	// update actSeq to keep max used seq
+	seq := a.Name[len(a.Activity):]
+	if s, err := strconv.Atoi(seq); err == nil {
+		if c, ok := actSeq[a.Activity]; !ok || c < s {
+			actSeq[a.Activity] = s
+		}
+	}
+}
+
+// create unique name for an action and register its link to previous action
+func (a *Action) linkAction(prev *actNoop, expr string) *actNoop {
+	var an *actNoop
+	if len(a.Name) == 0 {
+		// register the activity with a new unique name
+		a.Name = nextActivityID(a.Activity)
+		an = &actNoop{action: a}
+		noops[a.Name] = an
+	} else {
+		// should have been registered, so add branching condition
+		an = noops[a.Name]
+	}
+	an.expr = expr
+	if prev != nil {
+		// add it to links from prev action
+		prev.links = append(prev.links, an)
+	}
+	return an
+}
+
+// returns next id for an activity type ref, e.g., #get
+func nextActivityID(ref string) string {
+	seq, ok := actSeq[ref]
+	if !ok {
+		seq = 0
+	}
+	actSeq[ref] = seq + 1
+	return fmt.Sprintf("%s_%d", ref[1:], seq+1)
+}
+
+// ToResource converts a contract transaction to flow resource definition
+func (tx *Transaction) ToResource() (string, *definition.DefinitionRep, error) {
+	id := "flow:" + ToSnakeCase(tx.Name)
+
+	md := &metadata.IOMetadata{
+		Input: map[string]data.TypedValue{
+			"parameters": data.NewAttribute("parameters", data.TypeObject, nil),
+		},
+		Output: map[string]data.TypedValue{
+			"status":  data.NewAttribute("status", data.TypeInt, 0),
+			"message": data.NewAttribute("message", data.TypeString, ""),
+			"returns": data.NewAttribute("returns", data.TypeAny, nil),
+		},
+	}
+
+	// initialize for tasks and links
+	if err := tx.initTxnResource(); err != nil {
+		return "", nil, err
+	}
+	links := resourceLinks()
+	tasks := resourceTasks()
+
+	res := &definition.DefinitionRep{
+		Name:     tx.Name,
+		Metadata: md,
+		Links:    links,
+		Tasks:    tasks,
+	}
+
+	return id, res, nil
 }

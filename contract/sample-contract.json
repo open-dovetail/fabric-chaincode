@@ -173,7 +173,11 @@
                   },
                   "input": {
                     "mapping": {
-                      "owner": "=$flow.parameters.owner"
+                      "data": {
+                        "query": {
+                          "owner": "=$flow.parameters.owner"
+                        }
+                      }
                     }
                   }
                 },
@@ -190,6 +194,47 @@
               ]
             }
           ]
+        },
+        {
+          "name": "getHistory",
+          "parameters": [{
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/marbleKeyHistory"
+            }
+          },
+          "rules": [{
+            "description": "retrieve state history of a marble",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "config": {
+                  "history": true
+                },
+                "input": {
+                  "mapping": {
+                    "data": "=$flow.parameters.name"
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result"
+                  }
+                }
+              }
+            ]
+          }]
         },
         {
           "name": "transferMarble",
@@ -316,6 +361,148 @@
                           "color": "=$activity[get_1].result[0].value.color",
                           "size": "=$activity[get_1].result[0].value.size",
                           "owner": "=$flow.parameters.newOwner"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "activity": "#actreturn",
+                  "input": {
+                    "mapping": {
+                      "status": "=$activity[put_1].code",
+                      "message": "=$activity[put_1].message",
+                      "returns": "=$activity[put_1].result"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "transferMarblesBasedOnColor",
+          "parameters": [{
+              "name": "color",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "newOwner",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "returns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/marbleKeyValue"
+            }
+          },
+          "rules": [{
+              "description": "retrieve marbles of specified color",
+              "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "config": {
+                  "compositeKeys": {
+                    "color~name": [
+                      "docType",
+                      "color",
+                      "name"
+                    ]
+                  }
+                },
+                "input": {
+                  "mapping": {
+                    "data": {
+                      "color": "=$flow.parameters.color",
+                      "docType": "marble"
+                    }
+                  }
+                }
+              }]
+            },
+            {
+              "description": "return not found if marble does not exist",
+              "condition": {
+                "description": "no marble found for specified color",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code >= 300"
+              },
+              "actions": [{
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": 404,
+                    "message": "=string.concat(\"Marble of color \", $flow.parameters.color, \" is not found\")"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "update marbles to set new owner",
+              "condition": {
+                "description": "found marbles of specified color",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code < 300"
+              },
+              "actions": [{
+                  "activity": "#delete",
+                  "description": "delete composite keys for older owner",
+                  "config": {
+                    "compositeKeys": {
+                      "owner~name": [
+                        "docType",
+                        "owner",
+                        "name"
+                      ]
+                    },
+                    "keysOnly": true
+                  },
+                  "input": {
+                    "mapping": {
+                      "data": {
+                        "@foreach($activity[get_1].result)": {
+                          "docType": "=$loop.value.docType",
+                          "name": "=$loop.value.name",
+                          "owner": "=$loop.value.owner"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "activity": "#put",
+                  "description": "update new owner and associated composite key",
+                  "name": "put_1",
+                  "config": {
+                    "compositeKeys": {
+                      "owner~name": [
+                        "docType",
+                        "owner",
+                        "name"
+                      ]
+                    }
+                  },
+                  "input": {
+                    "schema": {
+                      "data": {
+                        "$ref": "#/components/schemas/marbleKeyValue"
+                      }
+                    },
+                    "mapping": {
+                      "data": {
+                        "@foreach($activity[get_1].result)": {
+                          "key": "=$loop.key",
+                          "value": {
+                            "color": "=$loop.value.color",
+                            "docType": "=$loop.value.docType",
+                            "name": "=$loop.value.name",
+                            "owner": "=$flow.parameters.newOwner"
+                          }
                         }
                       }
                     }
