@@ -1,6 +1,6 @@
 # contract sample
 
-The [contract schema](./contract-schema.json) defines smart contracts that are independent of programming languages and development platforms. It is based on the [fabric-chaincode-node](https://github.com/hyperledger/fabric-chaincode-node/blob/master/apis/fabric-contract-api/schema/contract-schema.json), but extended with additional execution rules to make the contract specification executable.
+The [contract schema](./contract-schema.json) defines smart contracts that are independent of programming languages and development platforms. It is based on the [fabric-chaincode-node](https://github.com/hyperledger/fabric-chaincode-node/blob/master/apis/fabric-contract-api/schema/contract-schema.json) schema definition, but extended with additional execution rules to make the contract specification executable.
 
 This [contract sample](./sample-contract.json) demonstrates how you can use **open-dovetail** to view and edit the contract-schema, and to build and deploy the contract to the Fabric `test-network`, and then verify the functions of the specified contract, all with zero code.
 
@@ -13,7 +13,7 @@ Set up development environment by following the **Getting Started** instructions
 In a terminal console, change to this directory, and type the command `make`, which will perform the following steps:
 
 - Use `flogo contract2flow` CLI extension to convert the [sample-contract.json](./sample-contract.json) to an executable Flogo model `sample.json`;
-- Build the Flogo model `sample.json` into a deployable chaincode package `sample_cc_1.0.tar.gz`;
+- Build the Flogo model, `sample.json`, into a deployable chaincode package `sample_cc_1.0.tar.gz`;
 - Deploy the chaincode package and test scripts to the **Fabric test-network** that was installed during the prerequisite setup.
 
 ## Start test-network and test chaincode
