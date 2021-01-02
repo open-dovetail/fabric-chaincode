@@ -79,11 +79,41 @@ func (c *AppConfig) WriteAppConfig(outFile string) error {
 		c.Config.Resources = append(c.Config.Resources, res)
 	}
 
-	result, err := marshalNoEscape(c.Config)
+	fixedConfig, err := fixTriggerConfig(c.Config)
+	if err != nil {
+		return err
+	}
+	result, err := marshalNoEscape(fixedConfig)
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(outFile, result, 0644)
+}
+
+// make app.Config serialized with `action` in trigger handler (instead of `actions`),
+// so the exported model can be imported to OSS Web UI
+func fixTriggerConfig(config *app.Config) (interface{}, error) {
+	jsonbytes, err := marshalNoEscape(config)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	err = json.Unmarshal(jsonbytes, &result)
+	triggers := result["triggers"].([]interface{})
+	for _, v := range triggers {
+		trig := v.(map[string]interface{})
+		handlers := trig["handlers"].([]interface{})
+		for _, h := range handlers {
+			handler := h.(map[string]interface{})
+			actions := handler["actions"].([]interface{})
+			if len(actions) > 0 {
+				act := actions[0]
+				delete(handler, "actions")
+				handler["action"] = act
+			}
+		}
+	}
+	return result, nil
 }
 
 // ToAppConfig converts the first contract in a contract spec to a Flogo AppConfig
@@ -227,6 +257,7 @@ type actNoop struct {
 }
 
 var noops map[string]*actNoop
+var firstNode *actNoop
 
 // actSeq caches current sequence number of an activity type
 var actSeq map[string]int
@@ -237,28 +268,40 @@ const (
 	returnRef = "#actreturn"
 )
 
-func resourceTasks() []*definition.TaskRep {
-	var tasks []*definition.TaskRep
-	for _, v := range noops {
-		act := v.action
-		actCfg := &activity.Config{
-			Ref: act.Activity,
+func addAction(resource *definition.DefinitionRep, act *actNoop) {
+	tsk := act.action.toResourceTask()
+	resource.Tasks = append(resource.Tasks, tsk)
+	for _, a := range act.links {
+		link := &definition.LinkRep{
+			FromID: act.action.Name,
+			ToID:   a.action.Name,
 		}
-		if act.Activity == returnRef {
-			// #actreturn maps input onto settings
-			actCfg.Settings = map[string]interface{}{"mappings": act.Input.Mapping}
-		} else {
-			actCfg.Settings = act.toActivitySetting()
-			actCfg.Input = act.toActivityInput()
+		if len(a.expr) > 0 {
+			link.Type = "expression"
+			link.Value = a.expr
 		}
-		tsk := &definition.TaskRep{
-			ID:             act.Name,
-			Name:           act.Name,
-			ActivityCfgRep: actCfg,
-		}
-		tasks = append(tasks, tsk)
+		resource.Links = append(resource.Links, link)
+		addAction(resource, a)
 	}
-	return tasks
+}
+
+// convert action to a task resource
+func (a *Action) toResourceTask() *definition.TaskRep {
+	actCfg := &activity.Config{
+		Ref: a.Activity,
+	}
+	if a.Activity == returnRef {
+		// #actreturn maps input onto settings
+		actCfg.Settings = map[string]interface{}{"mappings": a.Input.Mapping}
+	} else {
+		actCfg.Settings = a.toActivitySetting()
+		actCfg.Input = a.toActivityInput()
+	}
+	return &definition.TaskRep{
+		ID:             a.Name,
+		Name:           a.Name,
+		ActivityCfgRep: actCfg,
+	}
 }
 
 func (a *Action) toActivitySetting() map[string]interface{} {
@@ -300,28 +343,6 @@ func (a *Action) toActivityInput() map[string]interface{} {
 	}
 
 	return input
-}
-
-func resourceLinks() []*definition.LinkRep {
-	var links []*definition.LinkRep
-	for _, v := range noops {
-		if v.action == nil {
-			// skip startup node
-			continue
-		}
-		for _, l := range v.links {
-			r := &definition.LinkRep{
-				FromID: v.action.Name,
-				ToID:   l.action.Name,
-			}
-			if len(l.expr) > 0 {
-				r.Type = "expression"
-				r.Value = l.expr
-			}
-			links = append(links, r)
-		}
-	}
-	return links
 }
 
 func (tx *Transaction) initTxnResource() (err error) {
@@ -372,6 +393,7 @@ func addNoop(name string) (*actNoop, error) {
 				},
 			}
 			noops[name] = n
+			firstNode = n
 		}
 		return n, nil
 	}
@@ -443,6 +465,8 @@ func (a *Action) linkAction(prev *actNoop, expr string) *actNoop {
 	if prev != nil {
 		// add it to links from prev action
 		prev.links = append(prev.links, an)
+	} else {
+		firstNode = an
 	}
 	return an
 }
@@ -476,15 +500,14 @@ func (tx *Transaction) ToResource() (string, *definition.DefinitionRep, error) {
 	if err := tx.initTxnResource(); err != nil {
 		return "", nil, err
 	}
-	links := resourceLinks()
-	tasks := resourceTasks()
 
 	res := &definition.DefinitionRep{
 		Name:     tx.Name,
 		Metadata: md,
-		Links:    links,
-		Tasks:    tasks,
 	}
+
+	// add tasks and links using depth first search from first action node
+	addAction(res, firstNode)
 
 	return id, res, nil
 }
