@@ -1208,9 +1208,7 @@
               "input": {
                 "data": {
                   "mapping": {
-                    "query": {
-                      "owner": "=$flow.owner"
-                    }
+                    "owner": "=$flow.owner"
                   }
                 }
               },
@@ -1464,9 +1462,7 @@
               "input": {
                 "data": {
                   "mapping": {
-                    "query": {
-                      "size": "=$flow.size"
-                    }
+                    "size": "=$flow.size"
                   }
                 },
                 "pageSize": "=$flow.pageSize",
