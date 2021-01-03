@@ -16,7 +16,7 @@ var appFile string
 func init() {
 	contract2flow.Flags().StringVarP(&contractFile, "contract", "c", "contract.json", "specify a contract.json to create Flogo app from")
 	contract2flow.Flags().StringVarP(&appFile, "app", "o", "app.json", "specify the output file app.json")
-	contract2flow.Flags().BoolVarP(&enterprise, "fe", "fe", false, "user Flogo Enterprise")
+	contract2flow.Flags().BoolVarP(&enterprise, "fe", "e", false, "user Flogo Enterprise")
 	common.RegisterPlugin(contract2flow)
 }
 
