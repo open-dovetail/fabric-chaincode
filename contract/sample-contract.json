@@ -16,7 +16,7 @@
   "contracts": {
     "demo-contract": {
       "name": "Marble Exchange",
-      "cid": ["alias", "role", "email"],
+      "cid": "alias,role,email",
       "transactions": [{
           "name": "createMarble",
           "parameters": [{
@@ -174,9 +174,7 @@
                   "input": {
                     "mapping": {
                       "data": {
-                        "query": {
-                          "owner": "=$flow.parameters.owner"
-                        }
+                        "owner": "=$flow.parameters.owner"
                       }
                     }
                   }

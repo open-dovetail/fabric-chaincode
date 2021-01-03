@@ -8,10 +8,9 @@
     "ref": "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
     "homepage": "https://github.com/open-dovetail/fabric-chaincode/tree/master/trigger/transaction",
     "settings": [{
-        "name": "cidattrs",
-        "type": "array",
-        "description": "list of attributes of client ID, besides standard id, mspid, and cn",
-        "value": "[]"
+        "name": "cid",
+        "type": "string",
+        "description": "comma delimited names of attributes to extract from client ID, besides standard id, mspid, and cn"
     }],
     "handler": {
         "settings": [{
@@ -21,10 +20,9 @@
                 "description": "Name of the transaction for Hyperledger Fabric contract"
             },
             {
-                "name": "arguments",
-                "type": "array",
-                "description": "list of input argument name and type",
-                "value": "[]"
+                "name": "parameters",
+                "type": "string",
+                "description": "comma delimited names of input parameters, using format name:value, where sample value represents the non-string type, e.g., 0, 0.0, true"
             }
         ]
     },

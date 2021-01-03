@@ -18,6 +18,7 @@ import (
 var act *Activity
 var tc *test.TestActivityContext
 var stub *shimtest.MockStub
+var queryStmt string
 
 type Marble struct {
 	DocType string `json:"docType"`
@@ -69,6 +70,7 @@ func setup() error {
 		return errors.Errorf("activity type %T is not *Activity", iAct)
 	}
 
+	queryStmt = act.query
 	tc = test.NewActivityContext(act.Metadata())
 	stub = shimtest.NewMockStub("mock", nil)
 	tc.ActivityHost().Scope().SetValue(common.FabricStub, stub)
@@ -195,6 +197,7 @@ func TestGetByKey2(t *testing.T) {
 func TestGetByPartialKey(t *testing.T) {
 	logger.Info("TestGetByPartialKey")
 	act.keysOnly = false
+	act.query = ""
 
 	sample := `{
 		"docType": "marble",
@@ -237,6 +240,7 @@ func TestGetByPartialKey(t *testing.T) {
 func TestGetByPartialKey2(t *testing.T) {
 	logger.Info("TestGetByPartialKey2")
 	act.keysOnly = false
+	act.query = ""
 
 	sample := `[{
 			"docType": "marble",
@@ -285,6 +289,7 @@ func TestGetByPartialKey2(t *testing.T) {
 func TestGetByRange(t *testing.T) {
 	logger.Info("TestGetByRange")
 	act.keysOnly = false
+	act.query = ""
 
 	sample := `{
 		"start": "marble1",
@@ -328,6 +333,7 @@ func TestGetByRange(t *testing.T) {
 func TestGetByOpenRange(t *testing.T) {
 	logger.Info("TestGetByOpenRange")
 	act.keysOnly = false
+	act.query = ""
 
 	sample := `{
 		"start": ""
@@ -370,6 +376,7 @@ func TestGetByOpenRange(t *testing.T) {
 func TestGetByKeyOnly(t *testing.T) {
 	logger.Info("TestGetByKeyOnly")
 	act.keysOnly = true
+	act.query = ""
 
 	sample := `[{
 			"docType": "marble",
@@ -458,13 +465,12 @@ func TestPrepareQueryStatement(t *testing.T) {
 func TestGetByQuery(t *testing.T) {
 	logger.Info("TestGetByQuery")
 	act.keysOnly = false
+	act.query = queryStmt
 
 	// sample test message
 	sample := `{
-		"query": {
-			"size": 40,
-			"owner": "tom"
-		}
+		"size": 40,
+		"owner": "tom"
 	}`
 	var data map[string]interface{}
 	err := json.Unmarshal([]byte(sample), &data)

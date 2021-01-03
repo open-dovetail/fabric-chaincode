@@ -11,4 +11,5 @@ require (
 	github.com/project-flogo/flow v1.2.0
 	github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify v1.4.0
+	github.com/xeipuuv/gojsonschema v1.1.0
 )

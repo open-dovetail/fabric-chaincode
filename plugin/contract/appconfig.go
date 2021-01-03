@@ -18,6 +18,7 @@ import (
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/trigger"
 	"github.com/project-flogo/flow/definition"
+	jschema "github.com/xeipuuv/gojsonschema"
 )
 
 // AppConfig contains config of a Flogo app and its unmarshalled resource configs
@@ -167,7 +168,7 @@ func (c *Contract) ToTrigger() (*trigger.Config, error) {
 		Settings: make(map[string]interface{}),
 	}
 	if len(c.CID) > 0 {
-		trig.Settings["cidattrs"] = c.CID
+		trig.Settings["cid"] = c.CID
 	}
 	for _, tx := range c.Transactions {
 		handler, err := tx.ToHandler()
@@ -184,17 +185,19 @@ func (tx *Transaction) ToHandler() (*trigger.HandlerConfig, error) {
 	handler := &trigger.HandlerConfig{}
 
 	// convert tranaction parameters
-	var args []interface{}
+	var args bytes.Buffer
+	delimiter := ""
 	for _, p := range tx.Parameters {
 		attr, err := parameterToAttribute(p)
 		if err != nil {
 			return nil, err
 		}
-		args = append(args, attr)
+		args.WriteString(delimiter + attr)
+		delimiter = ","
 	}
 	handler.Settings = map[string]interface{}{
-		"name":      tx.Name,
-		"arguments": args,
+		"name":       tx.Name,
+		"parameters": args.String(),
 	}
 
 	// generate flow action
@@ -220,21 +223,27 @@ func (tx *Transaction) ToHandler() (*trigger.HandlerConfig, error) {
 	return handler, nil
 }
 
-// contract schema accepts transaction parameters of any schema types, but
+// contract schema accepts transaction parameters of any JSON schema types, but
 // Flogo model simplify it to support primitive types only, which practically covers all use-cases.
-// so convert these 2 expressions by extract primitive schema types
-func parameterToAttribute(param *Parameter) (map[string]interface{}, error) {
+// so consider only primitive schema types here
+func parameterToAttribute(param *Parameter) (string, error) {
 	if len(param.Name) == 0 {
-		return nil, errors.New("missing name of transaction parameter")
+		return "", errors.New("missing name of transaction parameter")
 	}
-	atype, ok := param.Schema["type"].(string)
-	if !ok || len(atype) == 0 {
-		atype = "string"
+	jsontype, ok := param.Schema["type"].(string)
+	if !ok || len(jsontype) == 0 {
+		return param.Name, nil
 	}
-	return map[string]interface{}{
-		"name": param.Name,
-		"type": atype,
-	}, nil
+	switch jsontype {
+	case jschema.TYPE_BOOLEAN:
+		return param.Name + ":false", nil
+	case jschema.TYPE_INTEGER:
+		return param.Name + ":0", nil
+	case jschema.TYPE_NUMBER:
+		return param.Name + ":0.0", nil
+	default:
+		return param.Name, nil
+	}
 }
 
 var matchFirstCap = regexp.MustCompile("([A-Z])([A-Z][a-z])")
@@ -490,7 +499,7 @@ func (tx *Transaction) ToResource() (string, *definition.DefinitionRep, error) {
 			"parameters": data.NewAttribute("parameters", data.TypeObject, nil),
 		},
 		Output: map[string]data.TypedValue{
-			"status":  data.NewAttribute("status", data.TypeInt, 0),
+			"status":  data.NewAttribute("status", data.TypeFloat64, 0),
 			"message": data.NewAttribute("message", data.TypeString, ""),
 			"returns": data.NewAttribute("returns", data.TypeAny, nil),
 		},

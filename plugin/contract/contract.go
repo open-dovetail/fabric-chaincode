@@ -23,7 +23,7 @@ type Info struct {
 // Contract defines a smart contract
 type Contract struct {
 	Name         string         `json:"name"`
-	CID          []string       `json:"cid"`
+	CID          string         `json:"cid"`
 	Transactions []*Transaction `json:"transactions"`
 	Info         *Info          `json:"info,omitempty"`
 }

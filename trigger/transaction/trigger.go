@@ -242,20 +242,16 @@ func prepareTransient(stub shim.ChaincodeStubInterface) (map[string]interface{},
 // construct trigger output parameters for specified parameter index, and values of the parameters
 func prepareParameters(attrs []*Attribute, values []string) (map[string]interface{}, error) {
 	logger.Debugf("prepare parameters %+v values %+v", attrs, values)
-	if attrs == nil || len(values) != len(attrs) {
+	if len(attrs) == 0 || len(values) != len(attrs) {
 		return nil, errors.New("transaction paramters do not match required argument list")
 	}
 
 	// convert string array to name-values as defined by transaction arguments
 	result := make(map[string]interface{})
-	if values != nil && len(values) > 0 {
-		// populate input args
-		for i, v := range values {
-			name := strings.TrimSpace(attrs[i].Name)
-			jsonType := strings.TrimSpace(attrs[i].Type)
-			if obj := unmarshalString(v, jsonType, name); obj != nil {
-				result[name] = obj
-			}
+	// populate input args
+	for i, v := range values {
+		if obj := unmarshalString(v, attrs[i].Type, attrs[i].Name); obj != nil {
+			result[attrs[i].Name] = obj
 		}
 	}
 	return result, nil

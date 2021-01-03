@@ -2,8 +2,11 @@ package transaction
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/project-flogo/core/data/coerce"
+	jschema "github.com/xeipuuv/gojsonschema"
 )
 
 // Attribute describes a name and data type
@@ -42,23 +45,19 @@ type Reply struct {
 }
 
 // construct Attribute from map of name and type
-func toAttribute(values interface{}) *Attribute {
-	var attr Attribute
-	if m, ok := values.(map[string]interface{}); ok {
-		if v, s := m["name"].(string); s {
-			attr.Name = v
-		}
-		if v, s := m["type"].(string); s {
-			attr.Type = v
-		}
+func toAttribute(name, value string) *Attribute {
+	jsonType := jschema.TYPE_STRING
+	if strings.EqualFold(value, "true") || strings.EqualFold(value, "false") {
+		jsonType = jschema.TYPE_BOOLEAN
+	} else if matched, err := regexp.MatchString(`\d+\.\d*`, value); err == nil && matched {
+		jsonType = jschema.TYPE_NUMBER
+	} else if matched, err := regexp.MatchString(`\d+`, value); err == nil && matched {
+		jsonType = jschema.TYPE_INTEGER
 	}
-	if len(attr.Name) == 0 {
-		return nil
+	return &Attribute{
+		Name: name,
+		Type: jsonType,
 	}
-	if len(attr.Type) == 0 {
-		attr.Type = "string"
-	}
-	return &attr
 }
 
 func (p *Attribute) String() string {
@@ -66,16 +65,20 @@ func (p *Attribute) String() string {
 }
 
 // FromMap sets settings from a map
-func (h *Settings) FromMap(values map[string]interface{}) error {
-	attrs, err := coerce.ToArray(values["cidattrs"])
+func (s *Settings) FromMap(values map[string]interface{}) error {
+	cid, err := coerce.ToString(values["cid"])
 	if err != nil {
 		return err
 	}
-	if attrs != nil && len(attrs) > 0 {
-		for _, v := range attrs {
-			if s, ok := v.(string); ok && len(s) > 0 {
-				h.CIDAttrs = append(h.CIDAttrs, s)
-			}
+	if len(cid) == 0 {
+		return nil
+	}
+
+	attrs := strings.Split(strings.TrimSpace(cid), ",")
+	for _, v := range attrs {
+		a := strings.TrimSpace(v)
+		if len(a) > 0 {
+			s.CIDAttrs = append(s.CIDAttrs, a)
 		}
 	}
 	return nil
@@ -87,15 +90,25 @@ func (h *HandlerSettings) FromMap(values map[string]interface{}) error {
 	if h.Name, err = coerce.ToString(values["name"]); err != nil {
 		return err
 	}
-	args, err := coerce.ToArray(values["arguments"])
+	params, err := coerce.ToString(values["parameters"])
 	if err != nil {
 		return err
 	}
-	if args != nil && len(args) > 0 {
-		for _, v := range args {
-			if attr := toAttribute(v); attr != nil {
-				h.Arguments = append(h.Arguments, attr)
-			}
+	if len(params) == 0 {
+		return nil
+	}
+	args := strings.Split(strings.TrimSpace(params), ",")
+	for _, v := range args {
+		pt := strings.Split(strings.TrimSpace(v), ":")
+		if len(pt) == 0 || len(strings.TrimSpace(pt[0])) == 0 {
+			continue
+		}
+		value := ""
+		if len(pt) > 1 {
+			value = strings.TrimSpace(pt[1])
+		}
+		if attr := toAttribute(strings.TrimSpace(pt[0]), value); attr != nil {
+			h.Arguments = append(h.Arguments, attr)
 		}
 	}
 	return nil

@@ -26,13 +26,7 @@ func TestTrigger_Register(t *testing.T) {
 func TestHandlerSettings(t *testing.T) {
 	config := `{
 		"name": "myTransaction",
-		"arguments": [{
-			"name": "color"
-		},
-		{
-			"name": "size",
-			"type": "integer"
-		}]
+		"parameters": "color,size:0"
 	}`
 	var configMap map[string]interface{}
 	err := json.Unmarshal([]byte(config), &configMap)
@@ -81,27 +75,13 @@ func TestTriggerEval(t *testing.T) {
       "id": "fabric_transaction",
       "ref": "#transaction",
       "settings": {
-        "cidattrs": null
+        "cid": "alias,role,email"
       },
       "handlers": [
         {
           "settings": {
             "name": "initMarble",
-            "arguments": [
-              {
-                "name": "name"
-              },
-              {
-                "name": "color"
-              },
-              {
-                "name": "size",
-                "type": "integer"
-              },
-              {
-                "name": "owner"
-              }
-            ]
+            "parameters": "name,color,size:0,owner"
           },
           "action": {
 			"id": "test",
@@ -134,6 +114,8 @@ func TestTriggerEval(t *testing.T) {
 
 	trans, ok := trig.(*Trigger)
 	assert.True(t, ok, "initialized trigger should of type *Trigger")
+	assert.Equal(t, 3, len(trans.cidAttrs), "cid should be configured with 3 attributes")
+	assert.Equal(t, 4, len(trans.arguments["initMarble"]), "initMarble should be configured with 4 parameters")
 
 	_, ok = trans.handlers["initMarble"]
 	assert.True(t, ok, "trigger should contain a handler for 'initMarble'")
@@ -148,7 +130,7 @@ func TestTriggerEval(t *testing.T) {
 
 	output := make(map[string]interface{})
 	err = json.Unmarshal(returns, &output)
-	assert.Nil(t, err, "trigger execution result should return a map")
+	assert.NoError(t, err, "trigger execution result should return a map")
 	assert.True(t, len(output[common.FabricStub].(string)) > 0, "stub should not be nil")
 	cid, ok := output[common.FabricCID].(map[string]interface{})
 	assert.True(t, ok, "client ID should be a map")

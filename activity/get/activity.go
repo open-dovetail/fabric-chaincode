@@ -206,18 +206,18 @@ func (a *Activity) retrieveData(stub shim.ChaincodeStubInterface, collection str
 		return code, []interface{}{value}, "", nil
 	case reflect.Map:
 		request := data.(map[string]interface{})
+		if len(a.query) > 0 {
+			// execute rich query if query statement is defined
+			return a.retrieveDataByQuery(stub, collection, request, pageSize, bookmark)
+		}
 		rangeStart, okStart := request["start"]
 		rangeEnd, okEnd := request["end"]
 		if ((okStart || okEnd) && len(request) == 1) || (okStart && okEnd && len(request) == 2) {
-			// execute range query for state or composite keys
+			// execute range query for state keys
 			return a.retrieveDataByRange(stub, collection, rangeStart, rangeEnd, pageSize, bookmark)
-		} else if params, ok := request["query"]; ok && len(request) == 1 {
-			// execute rich query
-			return a.retrieveDataByQuery(stub, collection, params, pageSize, bookmark)
-		} else {
-			// fetch data by partial key
-			return a.retrieveDataByPartialKey(stub, collection, request, pageSize, bookmark)
 		}
+		// fetch data by partial key
+		return a.retrieveDataByPartialKey(stub, collection, request, pageSize, bookmark)
 	default:
 		msg := fmt.Sprintf("invalid input data type %T", data)
 		logger.Errorf("%s", msg)
