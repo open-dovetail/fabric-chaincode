@@ -10,6 +10,7 @@ import (
 	pb "github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/oliveagle/jsonpath"
 	"github.com/project-flogo/core/activity"
+	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/core/data/expression"
 	"github.com/project-flogo/core/data/resolve"
 	"github.com/project-flogo/core/data/schema"
@@ -50,6 +51,26 @@ type CompositeKeyBag struct {
 	Name       string          `json:"name"`
 	Attributes []string        `json:"attributes"`
 	Keys       []*CompositeKey `json:"keys"`
+}
+
+// MapToObject strips extra nesting of mapping in config setting of activities exported by OSS Web UI
+func MapToObject(data interface{}) (map[string]interface{}, error) {
+	val, err := coerce.ToObject(data)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal JSON data: %v", data)
+	}
+
+	// strip nested mapping for OSS Web UI
+	if stripped, ok := val["mapping"]; ok && len(val) == 1 {
+		// mapping is the only element of nesting, strip it
+		result, ok := stripped.(map[string]interface{})
+		if !ok {
+			// stripped is not JSON object, so return the original data
+			return val, nil
+		}
+		return result, nil
+	}
+	return val, nil
 }
 
 // GetChaincodeStub returns Fabric chaincode stub from the activity context
