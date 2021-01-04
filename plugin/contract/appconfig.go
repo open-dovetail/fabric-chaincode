@@ -135,7 +135,7 @@ func (s *Spec) ToAppConfig() (*AppConfig, error) {
 		Type:        "flogo:app",
 		Version:     s.Info.Version,
 		Description: con.Name,
-		AppModel:    "1.1.0",
+		AppModel:    "1.1.1",
 		Imports:     s.Imports,
 	}
 	c := &AppConfig{
@@ -182,7 +182,9 @@ func (c *Contract) ToTrigger() (*trigger.Config, error) {
 
 // ToHandler converts a contract transaction to trigger handler config
 func (tx *Transaction) ToHandler() (*trigger.HandlerConfig, error) {
-	handler := &trigger.HandlerConfig{}
+	handler := &trigger.HandlerConfig{
+		Name: tx.Name,
+	}
 
 	// convert tranaction parameters
 	var args bytes.Buffer

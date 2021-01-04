@@ -1061,6 +1061,7 @@
                         "docType": "=$loop.value.docType",
                         "name": "=$loop.value.name",
                         "color": "=$loop.value.color",
+                        "size": "=$loop.value.size",
                         "owner": "=$flow.newOwner"
                       }
                     }

@@ -8,14 +8,14 @@
     "ref": "github.com/open-dovetail/fabric-chaincode/activity/delete",
     "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/delete",
     "settings": [{
-            "name": "compositeKeys",
-            "type": "object",
-            "description": "composite keys to be deleted and corresponding field names in a map[string][]string, e.g. {index1: [attr1,attr2]} (Note: if state key does not match the value of the last attribute of an index, the state-key will be appended to the end of the index)"
-        },
-        {
             "name": "keysOnly",
             "type": "boolean",
             "description": "Delete specified composite keys only, not the state."
+        },
+        {
+            "name": "compositeKeys",
+            "type": "object",
+            "description": "composite keys to be deleted and corresponding field names in a map[string][]string, e.g. {index1: [attr1,attr2]} (Note: if state key does not match the value of the last attribute of an index, the state-key will be appended to the end of the index)"
         }
     ],
     "inputs": [{

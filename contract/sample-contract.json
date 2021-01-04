@@ -11,7 +11,8 @@
     "github.com/project-flogo/contrib/activity/noop",
     "github.com/project-flogo/contrib/activity/actreturn",
     "github.com/project-flogo/flow",
-    "github.com/project-flogo/contrib/function/string"
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/array"
   ],
   "contracts": {
     "demo-contract": {
@@ -499,6 +500,7 @@
                             "color": "=$loop.value.color",
                             "docType": "=$loop.value.docType",
                             "name": "=$loop.value.name",
+                            "size": "=$loop.value.size",
                             "owner": "=$flow.parameters.newOwner"
                           }
                         }

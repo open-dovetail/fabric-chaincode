@@ -8,11 +8,6 @@
     "ref": "github.com/open-dovetail/fabric-chaincode/activity/put",
     "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/put",
     "settings": [{
-            "name": "compositeKeys",
-            "type": "object",
-            "description": "composite keys and field names as object map[string][]string, e.g. {index1: [attr1,attr2]}"
-        },
-        {
             "name": "keysOnly",
             "type": "boolean",
             "description": "Create specified composite keys only, not the state."
@@ -21,6 +16,11 @@
             "name": "createOnly",
             "type": "boolean",
             "description": "if true, do not update existing ledger state."
+        },
+        {
+            "name": "compositeKeys",
+            "type": "object",
+            "description": "composite keys and field names as object map[string][]string, e.g. {index1: [attr1,attr2]}"
         }
     ],
     "inputs": [{
