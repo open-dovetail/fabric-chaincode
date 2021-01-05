@@ -76,6 +76,9 @@
               "actions": [{
                   "activity": "#put",
                   "name": "put_1",
+                  "ledger": {
+                    "$ref": "#/components/schemas/marble"
+                  },
                   "config": {
                     "compositeKeys": {
                       "owner~name": [
@@ -164,6 +167,9 @@
               "actions": [{
                   "activity": "#get",
                   "name": "get_1",
+                  "ledger": {
+                    "$ref": "#/components/schemas/marble"
+                  },
                   "config": {
                     "query": {
                       "selector": {
@@ -213,6 +219,9 @@
             "actions": [{
                 "activity": "#get",
                 "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/marble"
+                },
                 "config": {
                   "history": true
                 },
@@ -312,6 +321,9 @@
               "actions": [{
                   "activity": "#delete",
                   "description": "delete composite key for older owner",
+                  "ledger": {
+                    "$ref": "#/components/schemas/marble"
+                  },
                   "config": {
                     "compositeKeys": {
                       "owner~name": [
@@ -336,6 +348,9 @@
                   "activity": "#put",
                   "description": "update new owner and associated composite key",
                   "name": "put_1",
+                  "ledger": {
+                    "$ref": "#/components/schemas/marble"
+                  },
                   "config": {
                     "compositeKeys": {
                       "owner~name": [
@@ -405,6 +420,9 @@
               "actions": [{
                 "activity": "#get",
                 "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/marble"
+                },
                 "config": {
                   "compositeKeys": {
                     "color~name": [
@@ -415,6 +433,12 @@
                   }
                 },
                 "input": {
+                  "sample": {
+                    "data": {
+                      "color": "",
+                      "docType": ""
+                    }
+                  },
                   "mapping": {
                     "data": {
                       "color": "=$flow.parameters.color",
@@ -451,6 +475,9 @@
               "actions": [{
                   "activity": "#delete",
                   "description": "delete composite keys for older owner",
+                  "ledger": {
+                    "$ref": "#/components/schemas/marble"
+                  },
                   "config": {
                     "compositeKeys": {
                       "owner~name": [
@@ -462,6 +489,13 @@
                     "keysOnly": true
                   },
                   "input": {
+                    "sample": {
+                      "data": [{
+                        "docType": "",
+                        "name": "",
+                        "owner": ""
+                      }]
+                    },
                     "mapping": {
                       "data": {
                         "@foreach($activity[get_1].result)": {
@@ -477,6 +511,9 @@
                   "activity": "#put",
                   "description": "update new owner and associated composite key",
                   "name": "put_1",
+                  "ledger": {
+                    "$ref": "#/components/schemas/marble"
+                  },
                   "config": {
                     "compositeKeys": {
                       "owner~name": [
@@ -489,7 +526,10 @@
                   "input": {
                     "schema": {
                       "data": {
-                        "$ref": "#/components/schemas/marbleKeyValue"
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/marbleKeyValue"
+                        }
                       }
                     },
                     "mapping": {
@@ -561,17 +601,28 @@
       "marbleHistory": {
         "$id": "marbleHistory",
         "properties": {
-          "txID": {
+          "key": {
             "type": "string"
-          },
-          "txTime": {
-            "type": "string"
-          },
-          "isDeleted": {
-            "type": "boolean"
           },
           "value": {
-            "$ref": "#/components/schemas/marble"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "txID": {
+                  "type": "string"
+                },
+                "txTime": {
+                  "type": "string"
+                },
+                "isDeleted": {
+                  "type": "boolean"
+                },
+                "value": {
+                  "$ref": "#/components/schemas/marble"
+                }
+              }
+            }
           }
         }
       }

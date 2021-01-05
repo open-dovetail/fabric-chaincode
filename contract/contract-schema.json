@@ -420,12 +420,15 @@
           "type": "string",
           "description": "Unique name of the activity if it is referenced by conditions or data mappers. It must be unique in scope of a transaction."
         },
+        "ledger": {
+          "$ref": "#/definitions/schema"
+        },
         "config": {
           "$ref": "#/definitions/anyObject"
         },
         "input": {
           "type": "object",
-          "description": "input data mapping expressions and/or input data schema for the operation activity",
+          "description": "input data mapping expressions and/or input data sample/schema for the operation activity",
           "properties": {
             "schema": {
               "type": "object",
@@ -434,6 +437,9 @@
                   "$ref": "#/definitions/schema"
                 }
               }
+            },
+            "sample": {
+              "$ref": "#/definitions/anyObject"
             },
             "mapping": {
               "$ref": "#/definitions/anyObject"
