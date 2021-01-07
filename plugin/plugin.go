@@ -32,7 +32,7 @@ var contract2flow = &cobra.Command{
 			fmt.Printf("Failed to read and parse contract file %s: %+v\n", contractFile, err)
 			os.Exit(1)
 		}
-		app, err := spec.ToAppConfig()
+		app, err := spec.ToAppConfig(enterprise)
 		if err != nil {
 			fmt.Printf("Failed to convert contract file %s: %+v\n", contractFile, err)
 			os.Exit(1)

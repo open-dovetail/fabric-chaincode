@@ -22,11 +22,12 @@ func TestAppConfig(t *testing.T) {
 func TestContractToAppConfig(t *testing.T) {
 	spec, err := ReadContract(testContract)
 	assert.NoError(t, err, "read sample contract should not throw error")
-	config, err := spec.ToAppConfig()
+	config, err := spec.ToAppConfig(true)
 	assert.NoError(t, err, "convert contract to app config should not throw error")
 
 	err = config.WriteAppConfig("contract-app.json")
 	assert.NoError(t, err, "write app config should not throw error")
+	//assert.Fail(t, "test")
 }
 
 func TestToSnakeCase(t *testing.T) {

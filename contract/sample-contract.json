@@ -211,7 +211,7 @@
           "returns": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/marbleKeyHistory"
+              "$ref": "#/components/schemas/marbleHistory"
             }
           },
           "rules": [{
@@ -270,6 +270,9 @@
               "actions": [{
                 "activity": "#get",
                 "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/marble"
+                },
                 "input": {
                   "mapping": {
                     "data": "=$flow.parameters.name"

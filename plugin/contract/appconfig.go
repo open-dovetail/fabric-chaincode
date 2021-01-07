@@ -118,7 +118,7 @@ func fixTriggerConfig(config *app.Config) (interface{}, error) {
 }
 
 // ToAppConfig converts the first contract in a contract spec to a Flogo AppConfig
-func (s *Spec) ToAppConfig() (*AppConfig, error) {
+func (s *Spec) ToAppConfig(fe bool) (*AppConfig, error) {
 	if len(s.Contracts) == 0 {
 		return nil, errors.New("No contract is defined in the spec")
 	}
@@ -138,12 +138,18 @@ func (s *Spec) ToAppConfig() (*AppConfig, error) {
 		AppModel:    "1.1.1",
 		Imports:     s.Imports,
 	}
+	if fe {
+		// convert and cache app schemas for Flogo Enterprise
+		if err := s.ConvertAppSchemas(); err != nil {
+			fmt.Printf("failed to convert app schema: %v\n", err)
+		}
+	}
 	c := &AppConfig{
 		Config:    ac,
 		Resources: make(map[string]*definition.DefinitionRep),
 	}
 	// create one trigger with one handler per transaction
-	trig, err := con.ToTrigger()
+	trig, err := con.ToTrigger(fe)
 	if err != nil {
 		return nil, err
 	}
@@ -151,17 +157,41 @@ func (s *Spec) ToAppConfig() (*AppConfig, error) {
 
 	// create a flow resource per transaction
 	for _, tx := range con.Transactions {
-		id, res, err := tx.ToResource()
+		var schm *trigger.SchemaConfig
+		if fe {
+			schm = handlerSchema(trig, tx.Name)
+		}
+		id, res, err := tx.ToResource(schm, con.CID)
 		if err != nil {
 			return nil, err
 		}
 		c.Resources[id] = res
 	}
+
+	if fe {
+		// collect app schema for Flogo Enterprise
+		if schm, err := getAppSchemas(); err == nil {
+			ac.Schemas = schm
+		} else {
+			fmt.Printf("failed to collect app schemas: %v\n", err)
+		}
+	}
+
 	return c, nil
 }
 
+// search trigger config for a schema config of a specified transaction name
+func handlerSchema(trigConfig *trigger.Config, txName string) *trigger.SchemaConfig {
+	for _, h := range trigConfig.Handlers {
+		if h.Name == txName {
+			return h.Schemas
+		}
+	}
+	return nil
+}
+
 // ToTrigger converts contract transactions to trigger handlers
-func (c *Contract) ToTrigger() (*trigger.Config, error) {
+func (c *Contract) ToTrigger(fe bool) (*trigger.Config, error) {
 	trig := &trigger.Config{
 		Id:       "fabric_transaction",
 		Ref:      "#transaction",
@@ -171,7 +201,7 @@ func (c *Contract) ToTrigger() (*trigger.Config, error) {
 		trig.Settings["cid"] = c.CID
 	}
 	for _, tx := range c.Transactions {
-		handler, err := tx.ToHandler()
+		handler, err := tx.ToHandler(fe)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +211,7 @@ func (c *Contract) ToTrigger() (*trigger.Config, error) {
 }
 
 // ToHandler converts a contract transaction to trigger handler config
-func (tx *Transaction) ToHandler() (*trigger.HandlerConfig, error) {
+func (tx *Transaction) ToHandler(fe bool) (*trigger.HandlerConfig, error) {
 	handler := &trigger.HandlerConfig{
 		Name: tx.Name,
 	}
@@ -222,6 +252,14 @@ func (tx *Transaction) ToHandler() (*trigger.HandlerConfig, error) {
 		Output: output,
 	}
 	handler.Actions = []*trigger.ActionConfig{action}
+	if fe {
+		// set handler schema for Flogo enterprise
+		if schm, err := tx.ToHandlerSchema(); err == nil {
+			handler.Schemas = schm
+		} else {
+			fmt.Printf("failed to convert handler schema for transaction %s: %v\n", tx.Name, err)
+		}
+	}
 	return handler, nil
 }
 
@@ -279,8 +317,8 @@ const (
 	returnRef = "#actreturn"
 )
 
-func addAction(resource *definition.DefinitionRep, act *actNoop) {
-	tsk := act.action.toResourceTask()
+func addAction(resource *definition.DefinitionRep, act *actNoop, includeSchema bool) {
+	tsk := act.action.toResourceTask(includeSchema)
 	resource.Tasks = append(resource.Tasks, tsk)
 	for _, a := range act.links {
 		link := &definition.LinkRep{
@@ -292,12 +330,12 @@ func addAction(resource *definition.DefinitionRep, act *actNoop) {
 			link.Value = a.expr
 		}
 		resource.Links = append(resource.Links, link)
-		addAction(resource, a)
+		addAction(resource, a, includeSchema)
 	}
 }
 
 // convert action to a task resource
-func (a *Action) toResourceTask() *definition.TaskRep {
+func (a *Action) toResourceTask(includeSchema bool) *definition.TaskRep {
 	actCfg := &activity.Config{
 		Ref: a.Activity,
 	}
@@ -307,6 +345,9 @@ func (a *Action) toResourceTask() *definition.TaskRep {
 	} else {
 		actCfg.Settings = a.toActivitySetting()
 		actCfg.Input = a.toActivityInput()
+		if includeSchema {
+			actCfg.Schemas = a.toActivitySchemas()
+		}
 	}
 	return &definition.TaskRep{
 		ID:             a.Name,
@@ -333,7 +374,6 @@ func (a *Action) toActivitySetting() map[string]interface{} {
 		}
 	}
 
-	// TODO: for Flogo enterprise, serialize it
 	return settings
 }
 
@@ -493,17 +533,34 @@ func nextActivityID(ref string) string {
 }
 
 // ToResource converts a contract transaction to flow resource definition
-func (tx *Transaction) ToResource() (string, *definition.DefinitionRep, error) {
+func (tx *Transaction) ToResource(schm *trigger.SchemaConfig, cid string) (string, *definition.DefinitionRep, error) {
 	id := "flow:" + ToSnakeCase(tx.Name)
 
+	input := map[string]data.TypedValue{
+		"parameters": data.NewAttribute("parameters", data.TypeObject, nil),
+	}
+	rAttr := data.NewAttribute("returns", data.TypeAny, nil)
+	includeSchema := false
+	if schm != nil {
+		// add schema info for Flogo Enterprise
+		includeSchema = true
+		if sc := extractFlowSchema(schm.Output["parameters"]); sc != nil {
+			input["parameters"] = data.NewAttributeWithSchema("parameters", data.TypeObject, nil, sc)
+		}
+		input["cid"] = data.NewAttributeWithSchema("cid", data.TypeObject, nil, cidSchema(cid))
+		input["txID"] = data.NewAttribute("txID", data.TypeString, "")
+		input["txTime"] = data.NewAttribute("txTime", data.TypeString, "")
+		if sc := extractFlowSchema(schm.Reply["returns"]); sc != nil {
+			rAttr = data.NewAttributeWithSchema("returns", data.TypeAny, nil, sc)
+		}
+	}
+
 	md := &metadata.IOMetadata{
-		Input: map[string]data.TypedValue{
-			"parameters": data.NewAttribute("parameters", data.TypeObject, nil),
-		},
+		Input: input,
 		Output: map[string]data.TypedValue{
 			"status":  data.NewAttribute("status", data.TypeFloat64, 0),
 			"message": data.NewAttribute("message", data.TypeString, ""),
-			"returns": data.NewAttribute("returns", data.TypeAny, nil),
+			"returns": rAttr,
 		},
 	}
 
@@ -518,7 +575,7 @@ func (tx *Transaction) ToResource() (string, *definition.DefinitionRep, error) {
 	}
 
 	// add tasks and links using depth first search from first action node
-	addAction(res, firstNode)
+	addAction(res, firstNode, includeSchema)
 
 	return id, res, nil
 }

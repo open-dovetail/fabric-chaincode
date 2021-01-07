@@ -65,6 +65,7 @@ type Action struct {
 	Activity    string                 `json:"activity"`
 	Description string                 `json:"description,omitempty"`
 	Name        string                 `json:"name,omitempty"`
+	Ledger      map[string]interface{} `json:"ledger,omitempty"`
 	Config      map[string]interface{} `json:"config,omitempty"`
 	Input       *Input                 `json:"input,omitempty"`
 }
@@ -72,6 +73,7 @@ type Action struct {
 // Input defines schema and mapping of an activity input
 type Input struct {
 	Schema  map[string]interface{} `json:"schema,omitempty"`
+	Sample  map[string]interface{} `json:"sample,omitempty"`
 	Mapping map[string]interface{} `json:"mapping"`
 }
 
