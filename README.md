@@ -29,7 +29,7 @@ With these Flogo extensions, Hyperledger Fabric chaincode can be designed and im
 
 ### Failed to install dovetail contributions in Web UI
 
-Before importing Dovetail sample apps to Web UI, you need to install the following Dovetail contributions, i.e., click the link `Install contribution` and then enter the following URL to install:
+Before importing Dovetail sample apps to Web UI, you need to install the following Dovetail contributions, i.e., click the link `Install contribution` at the top-right corner of the UI, and then enter the following URL to install:
 
 - github.com/open-dovetail/fabric-chaincode/trigger/transaction
 - github.com/open-dovetail/fabric-chaincode/activity/put
@@ -37,7 +37,7 @@ Before importing Dovetail sample apps to Web UI, you need to install the followi
 - github.com/open-dovetail/fabric-chaincode/activity/delete
 - github.com/project-flogo/contrib/activity/noop
 
-The Dovetail extensions require a couple of Flogo patches that have not been merged to Flogo core/flow projects yet, and so to install Dovetail contributions in Web UI, you can make the following changes after you start the Web UI docker container:
+The Dovetail contributions require a couple of Flogo patches that have not yet been merged to the Flogo core/flow projects, and so to install Dovetail contributions in the Web UI, you can make the following changes after you start the Web UI docker container:
 
 First, start a shell in the Web UI docker container:
 
@@ -51,7 +51,7 @@ Then, in the docker container shell, change directory to the `flogo-web` source 
 cd /flogo-web/local/engines/flogo-web/src
 ```
 
-Add the following lines to the end of file `go.mod`
+Add the following lines to the end of the file `go.mod`:
 
 ```script
 replace github.com/project-flogo/flow => github.com/yxuco/flow v1.1.1
