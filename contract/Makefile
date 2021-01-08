@@ -9,6 +9,9 @@ MARBLE_HOME   := $(SRC_PATH)/../samples/marble
 FAB_PATH      ?= $(SRC_PATH)/../../hyperledger/fabric-samples
 CC_DEPLOY     := $(FAB_PATH)/chaincode
 
+# uncomment this line to build for Flogo Enterprise
+#FE            := -e
+
 .PHONY: all
 all: build deploy
 
@@ -18,7 +21,7 @@ clean:
 
 .PHONY: build
 build: $(CONTRACT) clean
-	flogo contract2flow -c $(CONTRACT) -o $(APP_FILE)
+	flogo contract2flow $(FE) -c $(CONTRACT) -o $(APP_FILE)
 	cp -R $(MARBLE_HOME)/META-INF $(SRC_PATH)
 	$(SCRIPT_PATH)/build.sh $(APP_FILE) $(APP_NAME)
 
