@@ -9,13 +9,13 @@ import (
 var testConfig = "../../samples/marble/marble.json"
 
 func TestAppConfig(t *testing.T) {
-	config, err := ReadAppConfig(testConfig)
+	config, _, err := ReadAppConfig(testConfig)
 	assert.NoError(t, err, "read sample app config should not throw error")
-	assert.Equal(t, 1, len(config.Config.Triggers), "sample file should contain 1 trigger")
-	assert.Equal(t, 10, len(config.Config.Triggers[0].Handlers), "sample trigger should have 10 handlers")
+	assert.Equal(t, 1, len(config.Triggers), "sample file should contain 1 trigger")
+	assert.Equal(t, 10, len(config.Triggers[0].Handlers), "sample trigger should have 10 handlers")
 	assert.Equal(t, 10, len(config.Resources), "sample file should contain 10 resources")
 
-	err = config.WriteAppConfig("out.json")
+	err = WriteAppConfig(config, "out.json")
 	assert.NoError(t, err, "write app config should not throw error")
 }
 
@@ -25,7 +25,7 @@ func TestContractToAppConfig(t *testing.T) {
 	config, err := spec.ToAppConfig(true)
 	assert.NoError(t, err, "convert contract to app config should not throw error")
 
-	err = config.WriteAppConfig("contract-app.json")
+	err = WriteAppConfig(config, "contract-app.json")
 	assert.NoError(t, err, "write app config should not throw error")
 	//assert.Fail(t, "test")
 }
@@ -60,4 +60,19 @@ func TestToSnakeCase(t *testing.T) {
 			t.Errorf("input=%q:\nhave: %q\nwant: %q", test.input, have, test.want)
 		}
 	}
+}
+
+func TestFixActivitySchema(t *testing.T) {
+	spec, err := ReadContract(testContract)
+	assert.NoError(t, err, "read sample contract should not throw error")
+	config, err := spec.ToAppConfig(true)
+	assert.NoError(t, err, "convert contract to app config should not throw error")
+
+	doc, err := fixTriggerConfig(config)
+	assert.NoError(t, err)
+	fixActivitySchema(doc)
+	result := lookupJSONPath(doc, "$.resources.data.tasks.activity.schemas.settings.query")
+	assert.Equal(t, 1, len(result), "query schema setting")
+	result = lookupJSONPath(doc, "$.resources.data.tasks.activity.schemas.settings.compositeKeys")
+	assert.Equal(t, 6, len(result), "compositeKeys schema setting")
 }

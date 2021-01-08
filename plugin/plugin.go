@@ -37,7 +37,7 @@ var contract2flow = &cobra.Command{
 			fmt.Printf("Failed to convert contract file %s: %+v\n", contractFile, err)
 			os.Exit(1)
 		}
-		if err = app.WriteAppConfig(appFile); err != nil {
+		if err = contract.WriteAppConfig(app, appFile); err != nil {
 			fmt.Printf("Failed to write app config file %s: %+v\n", appFile, err)
 			os.Exit(1)
 		}

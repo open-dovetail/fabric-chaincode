@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,35 +22,28 @@ import (
 	jschema "github.com/xeipuuv/gojsonschema"
 )
 
-// AppConfig contains config of a Flogo app and its unmarshalled resource configs
-type AppConfig struct {
-	Config    *app.Config
-	Resources map[string]*definition.DefinitionRep
-}
-
 // ReadAppConfig reads a Flogo app json file and returns app.Config
-func ReadAppConfig(configFile string) (*AppConfig, error) {
+func ReadAppConfig(configFile string) (*app.Config, map[string]*definition.DefinitionRep, error) {
 	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	config := &app.Config{}
 	err = json.Unmarshal(data, config)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	result := &AppConfig{Config: config}
-	result.Resources = make(map[string]*definition.DefinitionRep)
+	resources := make(map[string]*definition.DefinitionRep)
 	for _, r := range config.Resources {
 		var def = &definition.DefinitionRep{}
 		err := json.Unmarshal(r.Data, def)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		result.Resources[r.ID] = def
+		resources[r.ID] = def
 	}
-	return result, nil
+	return config, resources, nil
 }
 
 // marshal JSON w/o escaping condition chars &, <, >
@@ -65,25 +59,17 @@ func marshalNoEscape(data interface{}) ([]byte, error) {
 }
 
 // WriteAppConfig serializes an app config and its resources
-func (c *AppConfig) WriteAppConfig(outFile string) error {
-	// serializes resources
-	c.Config.Resources = make([]*resource.Config, 0)
-	for k, v := range c.Resources {
-		data, err := marshalNoEscape(v)
-		if err != nil {
-			return err
-		}
-		res := &resource.Config{
-			ID:   k,
-			Data: data,
-		}
-		c.Config.Resources = append(c.Config.Resources, res)
-	}
-
-	fixedConfig, err := fixTriggerConfig(c.Config)
+func WriteAppConfig(config *app.Config, outFile string) error {
+	// change trigger handler to use 'action' instead of 'actions'
+	// -- this is required to import for Flogo Web UI
+	fixedConfig, err := fixTriggerConfig(config)
 	if err != nil {
 		return err
 	}
+
+	// generate activity metadata for complex settings used by Flogo Enterprise
+	fixActivitySchema(fixedConfig)
+
 	result, err := marshalNoEscape(fixedConfig)
 	if err != nil {
 		return err
@@ -98,27 +84,78 @@ func fixTriggerConfig(config *app.Config) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result map[string]interface{}
-	err = json.Unmarshal(jsonbytes, &result)
-	triggers := result["triggers"].([]interface{})
-	for _, v := range triggers {
-		trig := v.(map[string]interface{})
-		handlers := trig["handlers"].([]interface{})
-		for _, h := range handlers {
-			handler := h.(map[string]interface{})
-			actions := handler["actions"].([]interface{})
-			if len(actions) > 0 {
-				act := actions[0]
-				delete(handler, "actions")
-				handler["action"] = act
-			}
+	var result interface{}
+	if err := json.Unmarshal(jsonbytes, &result); err != nil {
+		return nil, err
+	}
+	handlers := lookupJSONPath(result, "$.triggers.handlers.")
+	for _, h := range handlers {
+		handler := h.(map[string]interface{})
+		actions := handler["actions"].([]interface{})
+		if len(actions) > 0 {
+			act := actions[0]
+			delete(handler, "actions")
+			handler["action"] = act
 		}
 	}
 	return result, nil
 }
 
-// ToAppConfig converts the first contract in a contract spec to a Flogo AppConfig
-func (s *Spec) ToAppConfig(fe bool) (*AppConfig, error) {
+// fill in schema for complex activity settings, which is required by Flogo Enterprise
+func fixActivitySchema(appjson interface{}) {
+
+	activities := lookupJSONPath(appjson, "$.resources.data.tasks.activity")
+	for _, act := range activities {
+		a, ok := act.(map[string]interface{})
+		if !ok || len(a) == 0 {
+			continue
+		}
+		matched, err := regexp.Match(a["ref"].(string), []byte("#put|#get|#delete"))
+		if !matched || err != nil {
+			continue
+		}
+		if _, ok := a["schemas"]; !ok {
+			// no schema definition, so not a model for Flogo Enterprise
+			continue
+		}
+		s, ok := a["settings"].(map[string]interface{})
+		if !ok || len(s) == 0 {
+			continue
+		}
+		for k, v := range s {
+			if reflect.ValueOf(v).Kind() == reflect.Map {
+				// create fe_metadata here
+				md := v
+				if d, ok := v.(map[string]interface{})["mapping"]; ok {
+					md = d
+				}
+				femd, _ := json.Marshal(md)
+				// fmt.Printf("fe_metadata for %s: %s => %s\n", a["ref"], k, string(femd))
+				addActivityFEMetadata(a, k, string(femd))
+			}
+		}
+	}
+}
+
+func addActivityFEMetadata(activity map[string]interface{}, key, feMetadata string) {
+	schm, ok := activity["schemas"].(map[string]interface{})
+	if !ok {
+		schm = make(map[string]interface{})
+		activity["schemas"] = schm
+	}
+	settings, ok := schm["settings"].(map[string]interface{})
+	if !ok {
+		settings = make(map[string]interface{})
+		schm["settings"] = settings
+	}
+	settings[key] = map[string]interface{}{
+		"type":        "json",
+		"fe_metadata": feMetadata,
+	}
+}
+
+// ToAppConfig converts the first contract in a contract spec to a Flogo App Config
+func (s *Spec) ToAppConfig(fe bool) (*app.Config, error) {
 	if len(s.Contracts) == 0 {
 		return nil, errors.New("No contract is defined in the spec")
 	}
@@ -144,10 +181,7 @@ func (s *Spec) ToAppConfig(fe bool) (*AppConfig, error) {
 			fmt.Printf("failed to convert app schema: %v\n", err)
 		}
 	}
-	c := &AppConfig{
-		Config:    ac,
-		Resources: make(map[string]*definition.DefinitionRep),
-	}
+
 	// create one trigger with one handler per transaction
 	trig, err := con.ToTrigger(fe)
 	if err != nil {
@@ -156,6 +190,7 @@ func (s *Spec) ToAppConfig(fe bool) (*AppConfig, error) {
 	ac.Triggers = []*trigger.Config{trig}
 
 	// create a flow resource per transaction
+	resources := make(map[string]*definition.DefinitionRep)
 	for _, tx := range con.Transactions {
 		var schm *trigger.SchemaConfig
 		if fe {
@@ -165,7 +200,7 @@ func (s *Spec) ToAppConfig(fe bool) (*AppConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		c.Resources[id] = res
+		resources[id] = res
 	}
 
 	if fe {
@@ -177,7 +212,22 @@ func (s *Spec) ToAppConfig(fe bool) (*AppConfig, error) {
 		}
 	}
 
-	return c, nil
+	// serializes resources
+	setAppResources(ac, resources)
+	return ac, nil
+}
+
+func setAppResources(config *app.Config, resources map[string]*definition.DefinitionRep) {
+	config.Resources = make([]*resource.Config, 0)
+	for k, v := range resources {
+		if data, err := marshalNoEscape(v); err == nil {
+			res := &resource.Config{
+				ID:   k,
+				Data: data,
+			}
+			config.Resources = append(config.Resources, res)
+		}
+	}
 }
 
 // search trigger config for a schema config of a specified transaction name

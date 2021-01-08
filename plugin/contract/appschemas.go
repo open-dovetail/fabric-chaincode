@@ -110,38 +110,44 @@ func expandRef(def interface{}) (bool, error) {
 
 // ToHandlerSchema extracts schema config from  a contract transaction
 func (tx *Transaction) ToHandlerSchema() (*trigger.SchemaConfig, error) {
-	// convert returns schema
-	rs := tx.Returns
-	if _, err := expandRef(rs); err != nil {
-		return nil, err
-	}
-	rbytes, err := json.Marshal(rs)
-	if err != nil {
-		return nil, err
-	}
-	replySchema := map[string]interface{}{
-		"returns": &schema.Def{
-			Type:  "json",
-			Value: string(rbytes),
-		},
+	result := &trigger.SchemaConfig{}
+
+	if len(tx.Returns) > 0 {
+		if v, ok := tx.Returns["$ref"].(string); ok {
+			// copy schema ref
+			ref := "schema://" + v[strings.LastIndex(v, "/")+1:]
+			result.Reply = map[string]interface{}{
+				"returns": ref,
+			}
+		} else {
+			// convert returns schema
+			rs := map[string]interface{}{
+				"returns": tx.Returns,
+			}
+			if _, err := expandRef(rs); err == nil {
+				if rbytes, err := json.Marshal(rs["returns"]); err == nil {
+					result.Reply = map[string]interface{}{
+						"returns": &schema.Def{
+							Type:  "json",
+							Value: string(rbytes),
+						},
+					}
+				}
+			}
+		}
 	}
 
 	// convert parameters schema
 	ps := parametersToSchema(tx.Parameters)
-	pbytes, err := json.Marshal(ps)
-	if err != nil {
-		return nil, err
+	if pbytes, err := json.Marshal(ps); err == nil {
+		result.Output = map[string]interface{}{
+			"parameters": &schema.Def{
+				Type:  "json",
+				Value: string(pbytes),
+			},
+		}
 	}
-	outputSchema := map[string]interface{}{
-		"parameters": &schema.Def{
-			Type:  "json",
-			Value: string(pbytes),
-		},
-	}
-	return &trigger.SchemaConfig{
-		Reply:  replySchema,
-		Output: outputSchema,
-	}, nil
+	return result, nil
 }
 
 // convert transaction parameters to schema def
@@ -172,8 +178,8 @@ func (f *flowSchema) Validate(data interface{}) error {
 	return nil
 }
 func (f *flowSchema) MarshalJSON() ([]byte, error) {
-	if strings.HasPrefix(f.SchemaValue, "\"schema://") {
-		return []byte(f.SchemaValue), nil
+	if strings.HasPrefix(f.SchemaValue, "schema://") {
+		return []byte("\"" + f.SchemaValue + "\""), nil
 	}
 	return json.Marshal(&struct {
 		SchemaType  string `json:"type"`
@@ -189,8 +195,20 @@ func (f *flowSchema) MarshalJSON() ([]byte, error) {
 //   for object, export only properties of the object
 //   for array, create app schema, and export a ref
 func extractFlowSchema(schemadef interface{}) schema.Schema {
-	def, ok := schemadef.(*schema.Def)
-	if !ok {
+	var def *schema.Def
+	switch d := schemadef.(type) {
+	case string:
+		if strings.HasPrefix(d, "schema://") {
+			return &flowSchema{
+				SchemaType:  "json",
+				SchemaValue: d,
+			}
+		}
+		fmt.Printf("invalid schema def %s\n", d)
+		return nil
+	case *schema.Def:
+		def = d
+	default:
 		fmt.Printf("schema is not a *Def: %T - %v\n", schemadef, schemadef)
 		return nil
 	}
@@ -207,7 +225,7 @@ func extractFlowSchema(schemadef interface{}) schema.Schema {
 		// add schema to app schema and return the ref
 		key := fnvHash(def.Value)
 		appSchemas["/"+key] = data
-		value = "\"schema://" + key + "\""
+		value = "schema://" + key
 	} else if data["type"].(string) == jschema.TYPE_OBJECT {
 		// return object properties
 		jsonbytes, err := json.Marshal(data["properties"])
@@ -502,4 +520,38 @@ func compositeKeySchema() schema.Schema {
 		SchemaType:  "json",
 		SchemaValue: s,
 	}
+}
+
+// return all objects matching the JSON path in specified JSON document
+func lookupJSONPath(doc interface{}, path string) []interface{} {
+	result := []interface{}{doc}
+	tokens := strings.Split(path, ".")
+	for _, p := range tokens[1:] {
+		result = getJSONElement(result, p)
+	}
+	return result
+}
+
+func getJSONElement(doc []interface{}, key string) []interface{} {
+	var result []interface{}
+	for _, v := range doc {
+		switch reflect.ValueOf(v).Kind() {
+		case reflect.Slice:
+			data := getJSONElement(v.([]interface{}), key)
+			if len(data) > 0 {
+				result = append(result, data...)
+			}
+		case reflect.Map:
+			if len(key) == 0 {
+				result = append(result, v)
+			} else if elem, ok := v.(map[string]interface{})[key]; ok {
+				result = append(result, elem)
+			}
+		default:
+			if len(key) == 0 {
+				result = append(result, v)
+			}
+		}
+	}
+	return result
 }

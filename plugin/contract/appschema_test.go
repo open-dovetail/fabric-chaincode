@@ -1,7 +1,9 @@
 package contract
 
 import (
+	"encoding/json"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,8 +42,31 @@ func TestJSON2Schema(t *testing.T) {
 			}
 		}
 	]`
-	result, err := json2schema(sample)
-	assert.NoError(t, err, "test")
-	fmt.Println(result)
-	assert.Fail(t, "test")
+	schm, err := json2schema(sample)
+	assert.NoError(t, err, "json2schema should not throw error")
+	//fmt.Println(result)
+	var data interface{}
+	err = json.Unmarshal([]byte(schm), &data)
+	assert.NoError(t, err, "schema should be a valid JSON object")
+	lookup := lookupJSONPath(data, "$.items.properties.loop.items.properties.x")
+	assert.Equal(t, 1, len(lookup), "should find 1 schema type")
+}
+
+func TestLookupJSONPath(t *testing.T) {
+	config, _, err := ReadAppConfig(testConfig)
+	assert.NoError(t, err)
+	jsonbytes, err := marshalNoEscape(config)
+	assert.NoError(t, err)
+	var doc interface{}
+	err = json.Unmarshal(jsonbytes, &doc)
+	assert.NoError(t, err)
+	result := lookupJSONPath(doc, "$.resources.data.tasks.activity")
+	count := 0
+	for _, v := range result {
+		data := v.(map[string]interface{})
+		if matched, err := regexp.Match(data["ref"].(string), []byte("#put|#get|#delete")); err == nil && matched {
+			count++
+		}
+	}
+	assert.Equal(t, 14, count, "ledger activity count should be 14")
 }

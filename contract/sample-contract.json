@@ -46,10 +46,7 @@
             }
           ],
           "returns": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/marbleKeyValue"
-            }
+            "$ref": "#/components/schemas/marbleKeyValue"
           },
           "rules": [{
               "description": "reject request if client's role is not 'broker'",
@@ -120,7 +117,7 @@
                     "mapping": {
                       "status": "=$activity[put_1].code",
                       "message": "=$activity[put_1].message",
-                      "returns": "=$activity[put_1].result"
+                      "returns": "=$activity[put_1].result[0]"
                     }
                   }
                 }
@@ -237,7 +234,7 @@
                   "mapping": {
                     "status": "=$activity[get_1].code",
                     "message": "=$activity[get_1].message",
-                    "returns": "=$activity[get_1].result"
+                    "returns": "=$activity[get_1].result[0].value"
                   }
                 }
               }
@@ -260,10 +257,7 @@
             }
           ],
           "returns": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/marbleKeyValue"
-            }
+            "$ref": "#/components/schemas/marbleKeyValue"
           },
           "rules": [{
               "description": "retrieve marble of specified name",
@@ -389,7 +383,7 @@
                     "mapping": {
                       "status": "=$activity[put_1].code",
                       "message": "=$activity[put_1].message",
-                      "returns": "=$activity[put_1].result"
+                      "returns": "=$activity[put_1].result[0]"
                     }
                   }
                 }
@@ -604,28 +598,17 @@
       "marbleHistory": {
         "$id": "marbleHistory",
         "properties": {
-          "key": {
+          "txID": {
             "type": "string"
           },
+          "txTime": {
+            "type": "string"
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
           "value": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "txID": {
-                  "type": "string"
-                },
-                "txTime": {
-                  "type": "string"
-                },
-                "isDeleted": {
-                  "type": "boolean"
-                },
-                "value": {
-                  "$ref": "#/components/schemas/marble"
-                }
-              }
-            }
+            "$ref": "#/components/schemas/marble"
           }
         }
       }
