@@ -18,6 +18,11 @@
             "description": "Fetch history record of specified state."
         },
         {
+            "name": "privateHash",
+            "type": "boolean",
+            "description": "Fetch private hash of specified key in a private data collection."
+        },
+        {
             "name": "compositeKeys",
             "type": "object",
             "description": "A composite key and its field names as object map[string][]string, e.g. {index1: [attr1,attr2]}. Note: only one key is used."

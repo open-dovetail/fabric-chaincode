@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/open-dovetail/fabric-chaincode/common"
@@ -59,6 +60,19 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	input := &Input{}
 	if err = ctx.GetInputObject(input); err != nil {
 		return false, err
+	}
+
+	if strings.HasPrefix(input.PrivateCollection, "_implicit") {
+		// override implicit collection using client's org
+		mspid, err := common.ResolveFlowData("$.cid.mspid", ctx)
+		if err != nil {
+			logger.Debugf("failed to fetch client mspid: %v\n", err)
+		} else {
+			if msp, ok := mspid.(string); ok && len(msp) > 0 {
+				input.PrivateCollection = "_implicit_org_" + msp
+				logger.Debugf("set implicit PDC to %s\n", input.PrivateCollection)
+			}
+		}
 	}
 
 	// get chaincode stub
@@ -201,7 +215,7 @@ func (a *Activity) deleteDataByKey(stub shim.ChaincodeStubInterface, collection 
 		return 400, nil, errors.New("state key is not specified")
 	}
 
-	_, jsonBytes, err := common.GetData(stub, collection, key)
+	_, jsonBytes, err := common.GetData(stub, collection, key, false)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get data '%s @ %s'", key, collection)
 		logger.Errorf("%s: %+v", msg, err)

@@ -10,11 +10,12 @@ import (
 
 // Settings of the activity
 type Settings struct {
-	KeyName    string   `md:"keyName"`
-	Attributes []string `md:"attributes"`
-	QueryStmt  string   `md:"queryStmt"`
-	KeysOnly   bool     `md:"keysOnly"`
-	History    bool     `md:"history"`
+	KeyName     string   `md:"keyName"`
+	Attributes  []string `md:"attributes"`
+	QueryStmt   string   `md:"queryStmt"`
+	KeysOnly    bool     `md:"keysOnly"`
+	History     bool     `md:"history"`
+	PrivateHash bool     `md:"privateHash"`
 }
 
 // Input of the activity
@@ -41,6 +42,9 @@ func (h *Settings) FromMap(values map[string]interface{}) error {
 		return err
 	}
 	if h.History, err = coerce.ToBool(values["history"]); err != nil {
+		return err
+	}
+	if h.PrivateHash, err = coerce.ToBool(values["privateHash"]); err != nil {
 		return err
 	}
 

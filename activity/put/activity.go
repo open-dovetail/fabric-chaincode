@@ -238,7 +238,7 @@ func (a *Activity) putData(stub shim.ChaincodeStubInterface, collection string, 
 	}
 	if a.createOnly {
 		// check if key already exist
-		if _, v, err := common.GetData(stub, collection, key); err == nil && v != nil {
+		if _, v, err := common.GetData(stub, collection, key, false); err == nil && v != nil {
 			return 409, errors.New("state key already exists")
 		}
 	}

@@ -33,11 +33,12 @@ type StateData struct {
 
 // Activity is a stub for executing Hyperledger Fabric get operations
 type Activity struct {
-	keyName    string
-	attributes []string
-	query      string
-	keysOnly   bool
-	history    bool
+	keyName     string
+	attributes  []string
+	query       string
+	keysOnly    bool
+	history     bool
+	privateHash bool
 }
 
 func (a *Activity) String() string {
@@ -54,11 +55,12 @@ func New(ctx activity.InitContext) (activity.Activity, error) {
 	}
 
 	return &Activity{
-		keyName:    s.KeyName,
-		attributes: s.Attributes,
-		query:      s.QueryStmt,
-		keysOnly:   s.KeysOnly,
-		history:    s.History,
+		keyName:     s.KeyName,
+		attributes:  s.Attributes,
+		query:       s.QueryStmt,
+		keysOnly:    s.KeysOnly,
+		history:     s.History,
+		privateHash: s.PrivateHash,
 	}, nil
 }
 
@@ -75,6 +77,19 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	input := &Input{}
 	if err = ctx.GetInputObject(input); err != nil {
 		return false, err
+	}
+
+	if strings.HasPrefix(input.PrivateCollection, "_implicit") {
+		// override implicit collection using client's org
+		mspid, err := common.ResolveFlowData("$.cid.mspid", ctx)
+		if err != nil {
+			logger.Debugf("failed to fetch client mspid: %v\n", err)
+		} else {
+			if msp, ok := mspid.(string); ok && len(msp) > 0 {
+				input.PrivateCollection = "_implicit_org_" + msp
+				logger.Debugf("set implicit PDC to %s\n", input.PrivateCollection)
+			}
+		}
 	}
 
 	// get chaincode stub
@@ -160,13 +175,21 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 			for _, v := range value {
 				if reflect.TypeOf(v).Elem().Name() == "StateData" {
 					state := v.(*StateData)
-					var d interface{}
-					if err := json.Unmarshal(state.Value, &d); err == nil {
+					if a.privateHash {
 						rec := map[string]interface{}{
 							common.KeyField:   state.Key,
-							common.ValueField: d,
+							common.ValueField: string(state.Value),
 						}
 						result = append(result, rec)
+					} else {
+						var d interface{}
+						if err := json.Unmarshal(state.Value, &d); err == nil {
+							rec := map[string]interface{}{
+								common.KeyField:   state.Key,
+								common.ValueField: d,
+							}
+							result = append(result, rec)
+						}
 					}
 				}
 			}
@@ -237,7 +260,7 @@ func (a *Activity) retrieveDataByKey(stub shim.ChaincodeStubInterface, collectio
 	if a.history && len(collection) == 0 {
 		jsonBytes, err = retrieveHistory(stub, key)
 	} else {
-		_, jsonBytes, err = common.GetData(stub, collection, key)
+		_, jsonBytes, err = common.GetData(stub, collection, key, a.privateHash)
 	}
 	if err != nil {
 		msg := fmt.Sprintf("failed to get data '%s @ %s'", key, collection)
@@ -432,7 +455,7 @@ func (a *Activity) retrieveDataByPartialKey(stub shim.ChaincodeStubInterface, co
 	// fetch corresponding state data
 	var values []interface{}
 	for _, ck := range keys {
-		k, v, err := common.GetData(stub, collection, ck.(string))
+		k, v, err := common.GetData(stub, collection, ck.(string), a.privateHash)
 		if err != nil {
 			logger.Warnf("failed to data for composite key %s", ck)
 			continue
