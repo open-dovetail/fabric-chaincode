@@ -33,6 +33,7 @@ type Transaction struct {
 	Name       string                 `json:"name"`
 	Tag        []string               `json:"tag,omitempty"`
 	Parameters []*Parameter           `json:"parameters"`
+	Transient  map[string]interface{} `json:"transient"`
 	Returns    map[string]interface{} `json:"returns"`
 	Rules      []*Rule                `json:"rules"`
 }

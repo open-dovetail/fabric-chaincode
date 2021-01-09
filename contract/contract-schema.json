@@ -179,6 +179,15 @@
         "parameters": {
           "$ref": "#/definitions/parametersList"
         },
+        "transient": {
+          "type": "object",
+          "description": "transient maps that must be sent in name-value where value is base64 encoded",
+          "patternProperties": {
+            "^.*$": {
+              "$ref": "#/definitions/schema"
+            }
+          }
+        },
         "returns": {
           "$ref": "#/definitions/schema"
         },

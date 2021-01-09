@@ -138,13 +138,30 @@ func (tx *Transaction) ToHandlerSchema() (*trigger.SchemaConfig, error) {
 	}
 
 	// convert parameters schema
-	ps := parametersToSchema(tx.Parameters)
-	if pbytes, err := json.Marshal(ps); err == nil {
-		result.Output = map[string]interface{}{
-			"parameters": &schema.Def{
+	result.Output = make(map[string]interface{})
+	if len(tx.Parameters) > 0 {
+		ps := parametersToSchema(tx.Parameters)
+		if pbytes, err := json.Marshal(ps); err == nil {
+			result.Output["parameters"] = &schema.Def{
 				Type:  "json",
 				Value: string(pbytes),
-			},
+			}
+		}
+	}
+
+	// convert transient schema
+	if len(tx.Transient) > 0 {
+		if _, err := expandRef(tx.Transient); err == nil {
+			ts := map[string]interface{}{
+				"type":       jschema.TYPE_OBJECT,
+				"properties": tx.Transient,
+			}
+			if tbytes, err := json.Marshal(ts); err == nil {
+				result.Output["transient"] = &schema.Def{
+					Type:  "json",
+					Value: string(tbytes),
+				}
+			}
 		}
 	}
 	return result, nil

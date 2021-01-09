@@ -288,6 +288,7 @@ func (tx *Transaction) ToHandler(fe bool) (*trigger.HandlerConfig, error) {
 	// TODO: support transient params
 	input := map[string]interface{}{
 		"parameters": "=$.parameters",
+		"transient":  "=$.transient",
 	}
 	output := map[string]interface{}{
 		"message": "=$.message",
@@ -586,16 +587,27 @@ func nextActivityID(ref string) string {
 func (tx *Transaction) ToResource(schm *trigger.SchemaConfig, cid string) (string, *definition.DefinitionRep, error) {
 	id := "flow:" + ToSnakeCase(tx.Name)
 
-	input := map[string]data.TypedValue{
-		"parameters": data.NewAttribute("parameters", data.TypeObject, nil),
+	input := make(map[string]data.TypedValue)
+	if len(tx.Parameters) > 0 {
+		input["parameters"] = data.NewAttribute("parameters", data.TypeObject, nil)
+	}
+	if len(tx.Transient) > 0 {
+		input["transient"] = data.NewAttribute("transient", data.TypeObject, nil)
 	}
 	rAttr := data.NewAttribute("returns", data.TypeAny, nil)
 	includeSchema := false
 	if schm != nil {
 		// add schema info for Flogo Enterprise
 		includeSchema = true
-		if sc := extractFlowSchema(schm.Output["parameters"]); sc != nil {
-			input["parameters"] = data.NewAttributeWithSchema("parameters", data.TypeObject, nil, sc)
+		if len(tx.Parameters) > 0 {
+			if sc := extractFlowSchema(schm.Output["parameters"]); sc != nil {
+				input["parameters"] = data.NewAttributeWithSchema("parameters", data.TypeObject, nil, sc)
+			}
+		}
+		if len(tx.Transient) > 0 {
+			if sc := extractFlowSchema(schm.Output["transient"]); sc != nil {
+				input["transient"] = data.NewAttributeWithSchema("transient", data.TypeObject, nil, sc)
+			}
 		}
 		input["cid"] = data.NewAttributeWithSchema("cid", data.TypeObject, nil, cidSchema(cid))
 		input["txID"] = data.NewAttribute("txID", data.TypeString, "")
