@@ -71,7 +71,7 @@ func TestMockLedger(t *testing.T) {
 
 	// test GetData
 	stub.MockTransactionStart("2")
-	k, v, err := GetData(stub, "", "marble1")
+	k, v, err := GetData(stub, "", "marble1", false)
 	assert.NoError(t, err, "get state data should not throw error")
 	assert.Equal(t, "marble1", k, "state key should be 'marble1'")
 	err = json.Unmarshal([]byte(v), &state)
@@ -79,7 +79,7 @@ func TestMockLedger(t *testing.T) {
 	assert.Equal(t, "marble1", state["name"], "name of the record should be 'marble1'")
 
 	// test GetData using a composite key
-	k2, v2, err := GetData(stub, "", keys[1])
+	k2, v2, err := GetData(stub, "", keys[1], false)
 	assert.NoError(t, err, "get state using composite key should not throw error")
 	assert.Equal(t, k, k2, "composite key should return the same state key")
 	assert.Equal(t, 0, bytes.Compare(v2, v), "composite key should return the same state value")
@@ -95,10 +95,10 @@ func TestMockLedger(t *testing.T) {
 
 	// verify result of deletion
 	stub.MockTransactionStart("4")
-	_, v, err = GetData(stub, "", "marble1")
+	_, v, err = GetData(stub, "", "marble1", false)
 	assert.NoError(t, err, "retrieve non-existing state data should not throw error")
 	assert.Nil(t, v, "retrieve non-existing state data should return nil")
-	_, v, err = GetData(stub, "", keys[1])
+	_, v, err = GetData(stub, "", keys[1], false)
 	assert.NoError(t, err, "retrieve non-existing composite key should not throw error")
 	assert.Nil(t, v, "retrieve non-existing composite key should return nil")
 	stub.MockTransactionEnd("4")

@@ -226,7 +226,7 @@ func PutData(stub shim.ChaincodeStubInterface, store string, key string, value [
 }
 
 // GetData retrieves data by state key from the ledger if 'store' is not specified, or a private data collection specified by 'store'
-func GetData(stub shim.ChaincodeStubInterface, store string, key string) (string, []byte, error) {
+func GetData(stub shim.ChaincodeStubInterface, store string, key string, privateHash bool) (string, []byte, error) {
 	if len(key) == 0 {
 		return key, nil, errors.New("key is not specified for Get")
 	}
@@ -242,6 +242,10 @@ func GetData(stub shim.ChaincodeStubInterface, store string, key string) (string
 	// retrieve data from ledger or private data collection
 	if len(store) == 0 {
 		data, err := stub.GetState(k)
+		return k, data, err
+	}
+	if privateHash {
+		data, err := stub.GetPrivateDataHash(store, k)
 		return k, data, err
 	}
 	data, err := stub.GetPrivateData(store, k)
