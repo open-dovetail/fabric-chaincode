@@ -57,7 +57,7 @@ func (a *Activity) Metadata() *activity.Metadata {
 // Eval implements activity.Activity.Eval
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	logger.Debugf("%v", a)
-	mspid, err := common.ResolveFlowData("$flow.cid.mspid", ctx)
+	mspid, err := common.ResolveFlowData("$.cid.mspid", ctx)
 	logger.Debugf("client mspid %v, %v\n", mspid, err)
 
 	// check input args
