@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/open-dovetail/fabric-chaincode/common"
@@ -57,13 +58,24 @@ func (a *Activity) Metadata() *activity.Metadata {
 // Eval implements activity.Activity.Eval
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	logger.Debugf("%v", a)
-	mspid, err := common.ResolveFlowData("$.cid.mspid", ctx)
-	logger.Debugf("client mspid %v, %v\n", mspid, err)
 
 	// check input args
 	input := &Input{}
 	if err = ctx.GetInputObject(input); err != nil {
 		return false, err
+	}
+
+	if strings.HasPrefix(input.PrivateCollection, "_implicit") {
+		// override implicit collection using client's org
+		mspid, err := common.ResolveFlowData("$.cid.mspid", ctx)
+		if err != nil {
+			logger.Debugf("failed to fetch client mspid: %v\n", err)
+		} else {
+			if msp, ok := mspid.(string); ok && len(msp) > 0 {
+				input.PrivateCollection = "_implicit_org_" + msp
+				logger.Debugf("set implicit PDC to %s\n", input.PrivateCollection)
+			}
+		}
 	}
 
 	// get chaincode stub
