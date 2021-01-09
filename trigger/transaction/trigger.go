@@ -117,7 +117,7 @@ func Invoke(stub shim.ChaincodeStubInterface, fn string, args []string) (int, []
 		logger.Errorf("%v\n", err)
 		return 400, []byte(err.Error())
 	}
-	if logger.DebugEnabled() {
+	if logger.DebugEnabled() && len(paramData) > 0 {
 		// debug flow data
 		paramBytes, _ := json.Marshal(paramData)
 		logger.Debugf("trigger parameters: %s", string(paramBytes))
@@ -241,14 +241,17 @@ func prepareTransient(stub shim.ChaincodeStubInterface) (map[string]interface{},
 
 // construct trigger output parameters for specified parameter index, and values of the parameters
 func prepareParameters(attrs []*Attribute, values []string) (map[string]interface{}, error) {
+	result := make(map[string]interface{})
 	logger.Debugf("prepare parameters %+v values %+v", attrs, values)
-	if len(attrs) == 0 || len(values) != len(attrs) {
+	if len(attrs) == 0 {
+		logger.Debug("no parameter required for this transaction")
+		return result, nil
+	}
+	if len(values) != len(attrs) {
 		return nil, errors.New("transaction paramters do not match required argument list")
 	}
 
 	// convert string array to name-values as defined by transaction arguments
-	result := make(map[string]interface{})
-	// populate input args
 	for i, v := range values {
 		if obj := unmarshalString(v, attrs[i].Type, attrs[i].Name); obj != nil {
 			result[attrs[i].Name] = obj
