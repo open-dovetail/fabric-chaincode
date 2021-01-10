@@ -25,17 +25,30 @@ With these Flogo extensions, Hyperledger Fabric chaincode can be designed and im
 - Setup development environment by executing the script: `scripts/setup.sh`
 - Build and run a sample Flogo model [marble](./samples/marble) as described in [README.md](./samples/marble/README.md)
 
-## Troubleshoot
+## View and edit Flogo model
 
-### Failed to install dovetail contributions in Web UI
+You can view and edit the chaincode implementation in a web-browser. First, start the **Flogo Web UI**:
 
-Before importing Dovetail sample apps to Web UI, you need to install the following Dovetail contributions, i.e., click the link `Install contribution` at the top-right corner of the UI, and then enter the following URL to install:
+```bash
+docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
+```
+
+Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`.
+
+Install the following Dovetail contributions, i.e., click the link `Install contribution` at the top-right corner of the UI, and then enter the following URL to install.  If the installation fails, you can follow the `Troubleshoot` steps to patch the Flogo, and then retry installation.
 
 - github.com/open-dovetail/fabric-chaincode/trigger/transaction
 - github.com/open-dovetail/fabric-chaincode/activity/put
 - github.com/open-dovetail/fabric-chaincode/activity/get
 - github.com/open-dovetail/fabric-chaincode/activity/delete
 - github.com/project-flogo/contrib/activity/noop
+
+
+Then import the app by selecting the model file [marble.json](./marble.json).
+
+## Troubleshoot
+
+### Failed to install dovetail contributions in Web UI
 
 The Dovetail contributions require a couple of Flogo patches that have not yet been merged to the Flogo core/flow projects, and so to install Dovetail contributions in the Web UI, you can make the following changes after you start the Web UI docker container:
 
@@ -51,7 +64,14 @@ Then, in the docker container shell, change directory to the `flogo-web` source 
 cd /flogo-web/local/engines/flogo-web/src
 ```
 
-Add the following lines to the end of the file `go.mod`:
+If you need `vi` editor to edit files in the docker container, you can install it as follows:
+
+```bash
+apt update
+apt install vim
+```
+
+Then, you can add the following lines to the end of the file `go.mod`:
 
 ```script
 replace github.com/project-flogo/flow => github.com/yxuco/flow v1.1.1
