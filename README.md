@@ -52,12 +52,10 @@ The Dovetail contributions will all return a status code similar to HTTP spec as
 - **200** OK
 - **201** Created
 - **206** Partial Content (e.g., paged result, or not all PUT succeeded)
-
 - **400** Bad Request
 - **403** Forbidden (e.g., user authenticated but not authorized)
 - **404** Not Found (e.g., query result is empty)
 - **409** Conflict (e.g., cannot create record for existing key when `createOnly=true`)
-
 - **500** Internal Server Error (e.g., unexpected exception in chaincode)
 - **501** Not Implemented (e.g., transaction name is not configured by trigger)
 
