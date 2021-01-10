@@ -392,6 +392,181 @@
           ]
         },
         {
+          "name": "getMarblePrice",
+          "parameters": [{
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "$ref": "#/components/schemas/marblePrivateHash"
+          },
+          "rules": [{
+            "description": "query private collection",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/marblePrivate"
+                },
+                "input": {
+                  "mapping": {
+                    "data": "=$flow.parameters.name",
+                    "privateCollection": "_implicit"
+                  }
+                }
+              },
+              {
+                "activity": "#get",
+                "name": "get_2",
+                "ledger": {
+                  "$ref": "#/components/schemas/marblePrivate"
+                },
+                "config": {
+                  "privateHash": true
+                },
+                "input": {
+                  "mapping": {
+                    "data": "=$flow.parameters.name",
+                    "privateCollection": "_implicit"
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": {
+                      "mapping": {
+                        "hash": "=$activity[get_2].result[0].value",
+                        "name": "=$activity[get_1].result[0].key",
+                        "price": "=$activity[get_1].result[0].value.price"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "offerPrice",
+          "transient": {
+            "marble": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "returns": {
+            "$ref": "#/components/schemas/marblePrivateKeyValue"
+          },
+          "rules": [{
+              "description": "retrieve marble of specified name",
+              "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/marble"
+                },
+                "input": {
+                  "mapping": {
+                    "data": "=$flow.transient.marble.name"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "return not found if marble does not exist",
+              "condition": {
+                "description": "no marble found for specified name",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code != 200"
+              },
+              "actions": [{
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": 404,
+                    "message": "=string.concat(\"Marble of name \", $flow.transient.marble.name, \" is not found\")"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "reject request if client is not the owner of the specified marble",
+              "condition": {
+                "description": "client is not marble owner",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code == 200 && $flow.cid.alias != $activity[get_1].result[0].value.owner"
+              },
+              "actions": [{
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": 403,
+                    "message": "=string.concat($flow.cid.cn, \" is not the owner of \", $flow.transient.marble.name)"
+                  }
+                }
+              }]
+            },
+            {
+              "description": "update marble to set marble price in private collection",
+              "condition": {
+                "description": "client is the marble owner",
+                "prerequisite": "get_1",
+                "expr": "$activity[get_1].code == 200 && $flow.cid.alias == $activity[get_1].result[0].value.owner"
+              },
+              "actions": [{
+                  "activity": "#put",
+                  "description": "update price of the marble",
+                  "name": "put_1",
+                  "ledger": {
+                    "$ref": "#/components/schemas/marblePrivate"
+                  },
+                  "input": {
+                    "schema": {
+                      "data": {
+                        "$ref": "#/components/schemas/marblePrivateKeyValue"
+                      }
+                    },
+                    "mapping": {
+                      "data": {
+                        "key": "=$activity[get_1].result[0].value.name",
+                        "value": {
+                          "docType": "marblePrivate",
+                          "name": "=$activity[get_1].result[0].value.name",
+                          "price": "=$flow.transient.marble.price"
+                        }
+                      },
+                      "privateCollection": "_implicit"
+                    }
+                  }
+                },
+                {
+                  "activity": "#actreturn",
+                  "input": {
+                    "mapping": {
+                      "status": "=$activity[put_1].code",
+                      "message": "=$activity[put_1].message",
+                      "returns": "=$activity[put_1].result[0]"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "name": "transferMarblesBasedOnColor",
           "parameters": [{
               "name": "color",
@@ -592,6 +767,46 @@
           },
           "value": {
             "$ref": "#/components/schemas/marble"
+          }
+        }
+      },
+      "marblePrivate": {
+        "$id": "marblePrivate",
+        "properties": {
+          "docType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      },
+      "marblePrivateHash": {
+        "$id": "marblePrivateHash",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      },
+
+      "marblePrivateKeyValue": {
+        "$id": "marblePrivateKeyValue",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/marblePrivate"
           }
         }
       },

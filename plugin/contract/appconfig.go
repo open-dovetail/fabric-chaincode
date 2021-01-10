@@ -74,6 +74,8 @@ func WriteAppConfig(config *app.Config, outFile string) error {
 	if err != nil {
 		return err
 	}
+	result = bytes.ReplaceAll(result, []byte("int64"), []byte("integer"))
+
 	return ioutil.WriteFile(outFile, result, 0644)
 }
 
@@ -620,7 +622,7 @@ func (tx *Transaction) ToResource(schm *trigger.SchemaConfig, cid string) (strin
 	md := &metadata.IOMetadata{
 		Input: input,
 		Output: map[string]data.TypedValue{
-			"status":  data.NewAttribute("status", data.TypeFloat64, 0),
+			"status":  data.NewAttribute("status", data.TypeInt64, 0),
 			"message": data.NewAttribute("message", data.TypeString, ""),
 			"returns": rAttr,
 		},

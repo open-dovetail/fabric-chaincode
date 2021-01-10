@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -430,13 +431,7 @@ func (a *Action) activityInputSchema() map[string]interface{} {
 
 // return result schema for ledger activities
 func (a *Action) ledgerOutputSchema() map[string]interface{} {
-	useLedger := false
-	for _, s := range []string{"#get", "#put", "#delete"} {
-		if a.Activity == s {
-			useLedger = true
-			break
-		}
-	}
+	useLedger, _ := regexp.Match(a.Activity, []byte("#put|#get|#delete"))
 	if !useLedger {
 		// not a ledger activity
 		return nil
@@ -450,6 +445,18 @@ func (a *Action) ledgerOutputSchema() map[string]interface{} {
 			}
 		}
 	}
+	if len(a.Config) > 0 && a.Config["privateHash"] != nil {
+		if v, ok := a.Config["privateHash"].(bool); ok && v {
+			schm := `{"type":"array","items":{"type":"object","properties":{"key":{"type":"string"},"value":{"type":"string"}}}}`
+			return map[string]interface{}{
+				"result": &flowSchema{
+					SchemaType:  "json",
+					SchemaValue: schm,
+				},
+			}
+		}
+	}
+
 	if len(a.Ledger) > 0 {
 		// return schema for ledger array
 		ledger, err := json.Marshal(a.Ledger)
