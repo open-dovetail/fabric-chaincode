@@ -44,4 +44,6 @@ You can view and edit the chaincode implementation in a web-browser. First, star
 docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
 ```
 
-Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`. Then import the app by selecting the model file [marble.json](./marble.json). For problems of importing the sample app, refer the troubleshoot instructions in [here](../../README.md).
+Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`. Then import the app by selecting the model file [marble.json](./marble.json).
+
+For problems of importing the model, refer the troubleshoot instructions [here](../../README.md).

@@ -35,7 +35,7 @@ docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
 
 Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`.
 
-Install the following Dovetail contributions, i.e., click the link `Install contribution` at the top-right corner of the UI, and then enter the following URL to install.  If the installation fails, you can follow the `Troubleshoot` steps to patch the Flogo, and then retry installation.
+Install the following Dovetail contributions, i.e., click the link `Install contribution` at the top-right corner of the UI, and then enter the following URL to install. If the installation fails, you can follow the `Troubleshoot` steps below to patch Flogo libs, and then retry the installation.
 
 - github.com/open-dovetail/fabric-chaincode/trigger/transaction
 - github.com/open-dovetail/fabric-chaincode/activity/put
@@ -43,8 +43,7 @@ Install the following Dovetail contributions, i.e., click the link `Install cont
 - github.com/open-dovetail/fabric-chaincode/activity/delete
 - github.com/project-flogo/contrib/activity/noop
 
-
-Then import the app by selecting the model file [marble.json](./marble.json).
+You can then import a sample app by selecting the model file [samples/marble/marble.json](./samples/marble/marble.json).
 
 ## Troubleshoot
 
