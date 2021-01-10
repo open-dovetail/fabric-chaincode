@@ -1,6 +1,6 @@
 # Fabric Get activity
 
-This Flogo activity contribution can be configured to perform any read operations on Hyperledger Fabric distributed ledger and private data collections. Most of the read operations are demonstrated in the [contract example](../../contract).
+This Flogo activity contribution can be configured to perform read operations on Hyperledger Fabric distributed ledger and private data collections. Most of the read operations are demonstrated in the [contract example](../../contract).
 
 ## Retrieve one or more ledger states by state keys
 

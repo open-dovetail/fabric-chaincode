@@ -1,10 +1,10 @@
 # Fabric Put activity
 
-This Flogo activity contribution can be configured to perform any write operations on Hyperledger Fabric distributed ledger and private data collections. Most of the write operations are demonstrated in the [contract example](../../contract).
+This Flogo activity contribution can be configured to perform write operations on Hyperledger Fabric distributed ledger and private data collections. Most of the write operations are demonstrated in the [contract example](../../contract).
 
 ## Insert or update one or more ledger states
 
-The operation requires input data of one or an array of key-value pairs, and optionally specify one or more composite-keys. For `insert-only` operations, you can turn on the `createOnly` flag, e.g.,
+This operation requires input data of one or an array of key-value pairs, and optionally defintions of one or more composite-keys. For `insert-only` operations, you can turn on the `createOnly` flag, e.g.,
 
 ```json
     "activity": {
@@ -35,7 +35,7 @@ The operation requires input data of one or an array of key-value pairs, and opt
     }
 ```
 
-This example creates a new record on the ledger using the specified state key and value. It also creates 2 composite keys of `color~name` and `owner~name` for indexed search. The request will be rejected if the specified state key already exists because `createOnly` is set to `true.
+This example creates a new record on the ledger using the specified state key and value. It also creates 2 composite keys of `color~name` and `owner~name` for indexed search. The request will be rejected if the specified state key already exists because `createOnly` is set to `true`.
 
 The following example will, however, create or update multiple ledger records and the associated composite key `owner~name`.
 

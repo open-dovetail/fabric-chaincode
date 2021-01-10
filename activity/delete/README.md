@@ -1,10 +1,10 @@
 # Fabric Delete activity
 
-This Flogo activity contribution can be configured to perform any delete operations on Hyperledger Fabric distributed ledger and private data collections. Some delete operations are demonstrated in the [contract example](../../contract).
+This Flogo activity contribution can be configured to perform delete operations on Hyperledger Fabric distributed ledger and private data collections. Some delete operations are demonstrated in the [contract example](../../contract).
 
 ## Delete one or more ledger states by state keys
 
-The operation requires input data of one or an array of key-value pairs, and optionally specify one or more composite-keys. For `insert-only` operations, you can turn on the `createOnly` flag, e.g.,
+This operation requires input data of one or an array of state keys, and optionally the definitions of one or more composite-keys, e.g.,
 
 ```json
     "activity": {
@@ -21,9 +21,9 @@ The operation requires input data of one or an array of key-value pairs, and opt
     }
 ```
 
-This example delete the specified state from the ledger, as well as the 2 composite keys of `color~name` and `owner~name` for this record.
+This example will delete the specified state from the ledger, as well as the 2 composite keys of `color~name` and `owner~name` for the record.
 
-## Delete multiple ledger states by composite keys
+## Delete multiple ledger states by partial composite keys
 
 This operation requires a composite-key definition, and input data used to construct composite-keys, e.g.,
 
@@ -51,11 +51,11 @@ This operation requires a composite-key definition, and input data used to const
     }
 ```
 
-This example will collect the ledger states for the specified composite-keys, and delete the matching ledger records and the associated composite keys.
+This example will collect the ledger states matching the specified composite-keys, and delete the resulting records and the associated composite keys.
 
 ## Delete composite keys only
 
-This operation requires to turn on the `keysOnly` flag besides a composite-key definition, and input data used to construct composite-keys, e.g.,
+This operation requires to turn on the `keysOnly` flag besides a composite-key definition, and the input data used to construct composite-keys, e.g.,
 
 ```json
     "activity": {
@@ -98,4 +98,4 @@ When a private data collection is specified in the input, data will be deleted f
     }
 ```
 
-This example will delete data from the client's implicit private collection, i.e., `_implicit_org_<mspid>`.
+This example will delete a record from the client's implicit private collection, i.e., `_implicit_org_<mspid>`.
