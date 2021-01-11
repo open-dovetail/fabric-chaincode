@@ -1,0 +1,38 @@
+{
+    "name": "fabric-setevent",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Fabric Set Event",
+    "description": "This activity sets an event on a fabric block",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/activity/setevent",
+    "homepage": "github.com/open-dovetail/fabric-chaincode/tree/master/activity/setevent",
+    "inputs": [{
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "name of the event to set"
+        },
+        {
+            "name": "payload",
+            "type": "any",
+            "description": "event payload as JSON object or array"
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer",
+            "description": "status code, e.g., 200 if successful"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "serialized result string of the event, or error message"
+        },
+        {
+            "name": "result",
+            "type": "object",
+            "description": "event name and payload, if the event is successfully set"
+        }
+    ]
+}
