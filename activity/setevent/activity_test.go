@@ -1,6 +1,7 @@
 package setevent
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/hyperledger/fabric-chaincode-go/shimtest"
@@ -44,4 +45,10 @@ func TestSetEvent(t *testing.T) {
 	assert.NoError(t, err, "action output should not be error")
 	assert.Equal(t, 200, output.Code, "action output status should be 200")
 	assert.Equal(t, "test", output.Result["name"].(string), "resulting event name should be 'test'")
+
+	// verify event data
+	event := <-stub.ChaincodeEventsChannel
+	var evtData map[string]interface{}
+	json.Unmarshal(event.GetPayload(), &evtData)
+	assert.Equal(t, "test event", evtData["data"].(string), "event payload data should be 'test event'")
 }

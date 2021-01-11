@@ -1,0 +1,46 @@
+{
+    "name": "fabric-invokechaincode",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Fabric Invoke Chaincode",
+    "description": "This activity invokes a chaincode transaction on a fabric channel",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/activity/invokechaincode",
+    "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/invokechaincode",
+    "inputs": [{
+            "name": "chaincodeName",
+            "type": "string",
+            "required": true
+        },
+        {
+            "name": "channelID",
+            "type": "string"
+        },
+        {
+            "name": "transactionName",
+            "type": "string",
+            "required": true
+        },
+        {
+            "name": "parameters",
+            "type": "array",
+            "description": "transaction parameters as array of any type"
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer",
+            "description": "status code returned by the invoked chaincode, e.g., 200 if successful"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "message returned by the invoked chaincode"
+        },
+        {
+            "name": "result",
+            "type": "any",
+            "description": "payload returned by the invoked chaincode"
+        }
+    ]
+}
