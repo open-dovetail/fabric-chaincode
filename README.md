@@ -1,6 +1,6 @@
 # Flogo extension for Hyperledger Fabric chaincode
 
-This Flogo extension is designed to allow developers to design and implement Hyperledger Fabric chaincode in the Flogo visual programming environment. This extension supports the following release versions:
+This [Flogo](http://www.flogo.io/) extension is designed to allow developers to design and implement Hyperledger Fabric chaincode in the Flogo visual programming environment. This extension supports the following release versions:
 
 - [Flogo Web UI](http://www.flogo.io/)
 - [Hyperledger Fabric 2.2](https://www.hyperledger.org/projects/fabric)
@@ -24,6 +24,14 @@ With these Flogo extensions, Hyperledger Fabric chaincode can be designed and im
 - Clone this repo into an empty working directory: `git clone https://github.com/open-dovetail/fabric-chaincode.git`
 - Setup development environment by executing the script: `scripts/setup.sh`
 - Build and run a sample Flogo model [marble](./samples/marble) as described in [README.md](./samples/marble/README.md)
+
+## Write smart contract specification in JSON
+
+For smart contract developers who do not want to code, you can define chaincode transactions in a JSON file, and then use the Flogo CLI command to generate a Flogo app and build it into a chaincode package that can be deployed and run in a Fabric network.
+
+All you need to do is to provided a JSON specification of a contract, and then optionally edit the data mapping via drag-and-drop in either the open-source Flogo Web-UI or the more advanced TIBCO Flogo Enterprise Web-UI. Thus, you can implement a Fabric chaincode without any programming in Java, Go, nor JavaScript.
+
+The [contract example](./contract) shows the JSON schema for smart contract and a sample contract that you can build and test using the Fabric test-network.
 
 ## View and edit Flogo model
 
