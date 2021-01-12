@@ -25,7 +25,7 @@ With these Flogo extensions, Hyperledger Fabric chaincode can be designed and im
 - Setup development environment by executing the script: `scripts/setup.sh`
 - Build and run a sample Flogo model [marble](./samples/marble) as described in [README.md](./samples/marble/README.md)
 
-## Write smart contract specification in JSON
+## Write smart contract in JSON
 
 For smart contract developers who do not want to code, you can define chaincode transactions in a JSON file, and then use the Flogo CLI command to generate a Flogo app and build it into a chaincode package that can be deployed and run in a Fabric network.
 
