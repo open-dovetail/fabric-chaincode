@@ -47,6 +47,6 @@ You can view and edit the chaincode implementation in a web-browser. First, star
 docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
 ```
 
-Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`. Then install the required Flogo extensions as listed in [README](../#view-and-edit-flogo-model), and import the app by selecting the generated model file `sample.json`.
+Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`. Then install the required Flogo extensions as listed in [README](https://github.com/open-dovetail/fabric-chaincode#view-and-edit-flogo-model), and import the app by selecting the generated model file `sample.json`.
 
 If you have license to [Flogo Enterprise](https://edelivery.tibco.com/storefront/eval/tibco-flogo-enterprise/prod11810.html), you can uncomment the line for `FE` in the [Makefile](./Makefile), and then execute `make` to generate model file for Flogo Enterprise. You can then start the Flogo Enterprise with `/path/to/flogo/2.10/bin/start-webui.sh`. Import the generated model, `sample.json`, you can then use the Web UI to edit the model, which is quite a bit more user-friendly than the open-source version of the Flogo Web UI.
