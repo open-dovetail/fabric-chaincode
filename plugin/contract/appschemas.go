@@ -1,3 +1,7 @@
+/*
+SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+*/
+
 package contract
 
 import (
@@ -45,7 +49,7 @@ func (s *Spec) ConvertAppSchemas() error {
 				count++
 			}
 		}
-		fmt.Printf("replaced %d schema refs\n", count)
+		// fmt.Printf("replaced %d schema refs\n", count)
 		if count == 0 {
 			break
 		}

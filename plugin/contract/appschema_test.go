@@ -1,3 +1,7 @@
+/*
+SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+*/
+
 package contract
 
 import (
@@ -10,20 +14,22 @@ import (
 )
 
 func TestAppSchema(t *testing.T) {
+	fmt.Println("TestAppSchema")
 	spec, err := ReadContract(testContract)
 	assert.NoError(t, err, "read sample contract should not throw error")
 	err = spec.ConvertAppSchemas()
 	assert.NoError(t, err, "convert contract to app config should not throw error")
 	defs, err := getAppSchemas()
 	assert.NoError(t, err, "collect contract to app config should not throw error")
-	assert.Equal(t, 3, len(defs), "there should be 3 schemas in the sample contract")
-	for k, v := range defs {
-		fmt.Printf("%s => %s\n", k, v.Value)
+	assert.Equal(t, 6, len(defs), "there should be 6 schemas in the sample contract")
+	for _, v := range defs {
+		//fmt.Printf("%s => %s\n", k, v.Value)
 		assert.NotContains(t, v.Value, "$ref", "app schema defintion should not contain refs")
 	}
 }
 
 func TestJSON2Schema(t *testing.T) {
+	fmt.Println("TestJSON2Schema")
 	sample := `[
 		{
 			"stringVar": "text",
@@ -53,6 +59,7 @@ func TestJSON2Schema(t *testing.T) {
 }
 
 func TestLookupJSONPath(t *testing.T) {
+	fmt.Println("TestLookupJSONPath")
 	config, _, err := ReadAppConfig(testConfig)
 	assert.NoError(t, err)
 	jsonbytes, err := marshalNoEscape(config)

@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Copyright (c) 2020, TIBCO Software Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+#
 # setup dev environment for open-dovetail chaincode build and test
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; echo "$(pwd)")"

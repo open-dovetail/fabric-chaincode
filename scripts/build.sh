@@ -1,5 +1,10 @@
 #!/bin/bash
-
+#
+# Copyright (c) 2020, TIBCO Software Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+#
 # build chaincode package from model.json.  package file will be in the same directory as the model.json
 # usage:
 #   ./build.sh ../samples/marble/marble.json marble_cc

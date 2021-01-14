@@ -1,5 +1,10 @@
 #!/bin/bash
-
+#
+# Copyright (c) 2020, TIBCO Software Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+#
 # install and instantiate marble_cc in the Fabric test-network
 # execute this script from the scripts folder of the cli docker container
 

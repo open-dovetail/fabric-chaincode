@@ -1,5 +1,10 @@
 #!/bin/bash
-
+#
+# Copyright (c) 2020, TIBCO Software Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+#
 # sample_cc tests executed from cli docker container of the Fabric test-network
 
 . ./scripts/envVar.sh

@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Copyright (c) 2020, TIBCO Software Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+#
 # generate user certificates after starting test-network with CA, i.e.,
 # ./network.sh up createChannel -ca -s couchdb
 # ./gen-certs.sh

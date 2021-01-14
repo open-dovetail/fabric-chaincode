@@ -1,6 +1,11 @@
+/*
+SPDX-License-Identifier: BSD-3-Clause-Open-MPI
+*/
+
 package contract
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +14,7 @@ import (
 var testConfig = "../../samples/marble/marble.json"
 
 func TestAppConfig(t *testing.T) {
+	fmt.Println("TestAppConfig")
 	config, _, err := ReadAppConfig(testConfig)
 	assert.NoError(t, err, "read sample app config should not throw error")
 	assert.Equal(t, 1, len(config.Triggers), "sample file should contain 1 trigger")
@@ -20,6 +26,7 @@ func TestAppConfig(t *testing.T) {
 }
 
 func TestContractToAppConfig(t *testing.T) {
+	fmt.Println("TestContractToAppConfig")
 	spec, err := ReadContract(testContract)
 	assert.NoError(t, err, "read sample contract should not throw error")
 	config, err := spec.ToAppConfig(true)
@@ -31,6 +38,7 @@ func TestContractToAppConfig(t *testing.T) {
 }
 
 func TestToSnakeCase(t *testing.T) {
+	fmt.Println("TestToSnakeCase")
 	tests := []struct {
 		input string
 		want  string
@@ -63,6 +71,7 @@ func TestToSnakeCase(t *testing.T) {
 }
 
 func TestFixActivitySchema(t *testing.T) {
+	fmt.Println("TestFixActivitySchema")
 	spec, err := ReadContract(testContract)
 	assert.NoError(t, err, "read sample contract should not throw error")
 	config, err := spec.ToAppConfig(true)
