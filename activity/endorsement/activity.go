@@ -66,11 +66,11 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		// override implicit collection using client's org
 		mspid, err := common.ResolveFlowData("$.cid.mspid", ctx)
 		if err != nil {
-			logger.Debugf("failed to fetch client mspid: %v\n", err)
+			logger.Debugf("failed to fetch client mspid: %v", err)
 		} else {
 			if msp, ok := mspid.(string); ok && len(msp) > 0 {
 				input.PrivateCollection = "_implicit_org_" + msp
-				logger.Debugf("set implicit PDC to %s\n", input.PrivateCollection)
+				logger.Debugf("set implicit PDC to %s", input.PrivateCollection)
 			}
 		}
 	}
@@ -140,16 +140,15 @@ func (a *Activity) handlePolicy(stub shim.ChaincodeStubInterface, input *Input, 
 		return 500, nil, err
 	}
 
-	var stateEP statebased.KeyEndorsementPolicy
 	switch a.operation {
 	case "ADD":
-		stateEP, err = a.addOrgsToPolicy(ep, input.Organizations)
+		ep, err = a.addOrgsToPolicy(ep, input.Organizations)
 	case "DELETE":
-		stateEP, err = a.deleteOrgsFromPolicy(ep, input.Organizations)
+		ep, err = a.deleteOrgsFromPolicy(ep, input.Organizations)
 	case "LIST":
-		stateEP, err = statebased.NewStateEP(ep)
+		// nothing to change
 	case "SET":
-		stateEP, err = createNewPolicy(input.Policy)
+		ep, err = createNewPolicy(input.Policy)
 	default:
 		msg := fmt.Sprintf("operation %s is not supported", a.operation)
 		logger.Error(msg)
@@ -160,9 +159,6 @@ func (a *Activity) handlePolicy(stub shim.ChaincodeStubInterface, input *Input, 
 	}
 
 	if a.operation != "LIST" {
-		if ep, err = stateEP.Policy(); err != nil {
-			return 500, nil, err
-		}
 		// update endorsement policy for key
 		if err := setEndorsementPolicy(stub, input.PrivateCollection, key, ep); err != nil {
 			msg := fmt.Sprintf("failed to set policy for %s @ %s", key, input.PrivateCollection)
@@ -170,13 +166,11 @@ func (a *Activity) handlePolicy(stub shim.ChaincodeStubInterface, input *Input, 
 			return 500, nil, errors.Wrapf(err, msg)
 		}
 	}
-	orgs := stateEP.ListOrgs()
-	policy, _ := unmarshalPolicy(ep)
 
+	policy, _ := unmarshalPolicy(ep)
 	return 200, map[string]interface{}{
-		"key":           key,
-		"organizations": orgs,
-		"policy":        policy,
+		"key":    key,
+		"policy": policy,
 	}, nil
 }
 
@@ -200,7 +194,7 @@ func unmarshalPolicy(policy []byte) (map[string]interface{}, error) {
 		}
 	}
 	if len(ids) > 0 {
-		result["identies"] = ids
+		result["orgs"] = ids
 	}
 	return result, nil
 }
@@ -236,7 +230,8 @@ func setEndorsementPolicy(stub shim.ChaincodeStubInterface, store string, key st
 	return stub.SetStateValidationParameter(key, ep)
 }
 
-func createNewPolicy(policy string) (statebased.KeyEndorsementPolicy, error) {
+// returns endorsement policy specified by a string, e.g., OutOf(1, 'Org1.peer', 'Org2.peer', 'Org3.peer')
+func createNewPolicy(policy string) ([]byte, error) {
 	// create new policy from policy string
 	if len(policy) == 0 {
 		msg := "policy is not specified for SET operation"
@@ -249,16 +244,11 @@ func createNewPolicy(policy string) (statebased.KeyEndorsementPolicy, error) {
 		logger.Errorf("%s: %v", msg, err)
 		return nil, errors.Wrapf(err, "%s", msg)
 	}
-	ep, err := proto.Marshal(envelope)
-	if err != nil {
-		msg := "failed to marshal signature policy"
-		logger.Errorf("%s: %+v", msg, err)
-		return nil, errors.Wrapf(err, msg)
-	}
-	return statebased.NewStateEP(ep)
+	return proto.Marshal(envelope)
 }
 
-func (a *Activity) deleteOrgsFromPolicy(ep []byte, orgs []string) (statebased.KeyEndorsementPolicy, error) {
+// returns a policy that requires endorsement by all original orgs except the specified orgs to be deleted
+func (a *Activity) deleteOrgsFromPolicy(ep []byte, orgs []string) ([]byte, error) {
 	stateEP, err := statebased.NewStateEP(ep)
 	if err != nil {
 		logger.Errorf("failed to construct policy from channel default: %+v", err)
@@ -268,10 +258,11 @@ func (a *Activity) deleteOrgsFromPolicy(ep []byte, orgs []string) (statebased.Ke
 		return nil, errors.New("No organization is specified")
 	}
 	stateEP.DelOrgs(orgs...)
-	return stateEP, nil
+	return stateEP.Policy()
 }
 
-func (a *Activity) addOrgsToPolicy(ep []byte, orgs []string) (statebased.KeyEndorsementPolicy, error) {
+// returns a policy that requires endorsement by all original orgs and specified additional orgs
+func (a *Activity) addOrgsToPolicy(ep []byte, orgs []string) ([]byte, error) {
 	stateEP, err := statebased.NewStateEP(ep)
 	if err != nil {
 		logger.Errorf("failed to construct policy from channel default: %+v", err)
@@ -281,5 +272,5 @@ func (a *Activity) addOrgsToPolicy(ep []byte, orgs []string) (statebased.KeyEndo
 		return nil, errors.New("No organization is specified")
 	}
 	err = stateEP.AddOrgs(statebased.RoleType(a.role), orgs...)
-	return stateEP, err
+	return stateEP.Policy()
 }

@@ -56,6 +56,7 @@ func (i *Input) ToMap() map[string]interface{} {
 	for _, org := range i.Organizations {
 		orgs = append(orgs, org)
 	}
+
 	return map[string]interface{}{
 		"keys":              keys,
 		"organizations":     orgs,
