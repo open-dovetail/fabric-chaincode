@@ -1,0 +1,74 @@
+{
+    "name": "fabric-endorsement",
+    "version": "1.0.0",
+    "type": "flogo:activity",
+    "title": "Fabric Endorsement Policy",
+    "description": "This activity manages state-based endorsement policy for fabric",
+    "author": "Yueming Xu",
+    "ref": "github.com/open-dovetail/fabric-chaincode/activity/endorsement",
+    "homepage": "http://github.com/open-dovetail/fabric-chaincode/tree/master/activity/endorsement",
+    "settings": [{
+            "name": "operation",
+            "type": "string",
+            "required": true,
+            "description": "Operation for state-based endorsement policy",
+            "allowed": [
+                "ADD",
+                "DELETE",
+                "LIST",
+                "SET"
+            ],
+            "value": "LIST"
+        },
+        {
+            "name": "role",
+            "type": "string",
+            "description": "Endorsement role type for the new endorsing organization",
+            "allowed": [
+                "MEMBER",
+                "ADMIN",
+                "CLIENT",
+                "PEER"
+            ],
+            "value": "MEMBER"
+        }
+    ],
+    "inputs": [{
+            "name": "keys",
+            "type": "any",
+            "required": true,
+            "description": "one or array of state keys for endorsement policy"
+        },
+        {
+            "name": "organizations",
+            "type": "any",
+            "description": "one or array of MSPIDs to add to or delete from endorsement policy"
+        },
+        {
+            "name": "policy",
+            "type": "string",
+            "description": "New endorsement policy, e.g., OutOf(1, 'Org1.member', 'Org2.member', 'Org3.member')"
+        },
+        {
+            "name": "privateCollection",
+            "type": "string",
+            "description": "name of private data collection, or blank if not private data"
+        }
+    ],
+    "outputs": [{
+            "name": "code",
+            "type": "integer",
+            "description": "status code, e.g., 200 if successful"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "description": "serialized result string, or error message"
+        },
+        {
+            "name": "result",
+            "type": "array",
+            "description": "keys and JSON object values corresponding to the state keys and updated endorsement policy"
+        }
+    ]
+}
