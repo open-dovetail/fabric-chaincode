@@ -9,7 +9,7 @@ This Flogo activity contribution can be used to invoke a specified chaincode fro
             "chaincodeName": "marble_cc",
             "channelID": "mychannel",
             "transactionName": "createMarble",
-            "parameters": ["marble1", "blue", 50, "tom"]
+            "parameters": "=array.create(\"marble1\", \"blue\", \"50\", \"tom\")"
         }
     }
 ```

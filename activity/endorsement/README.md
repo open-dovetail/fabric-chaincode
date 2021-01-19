@@ -13,7 +13,7 @@ This operation requires to configure the operation name as `LIST`, and specify o
             "operation": "LIST"
         },
         "input": {
-            "keys": ["key1", "key2"]
+            "keys": "=array.create(\"key1\", \"key2\")"
         }
     }
 ```
@@ -91,7 +91,7 @@ This operation requires to configure the operation name as `ADD`, and specify on
         },
         "input": {
             "keys": "key1",
-            "organizations": ["org1", "org2"]
+            "organizations": "=array.create(\"org1\", \"org2\")"
         }
     }
 ```
