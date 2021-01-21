@@ -218,7 +218,7 @@ func (s *Spec) ToAppConfig(fe bool) (*app.Config, error) {
 	}
 
 	// serializes resources
-	setAppResources(ac, resources)
+	SetAppResources(ac, resources)
 	return ac, nil
 }
 
