@@ -5,8 +5,12 @@ SPDX-License-Identifier: BSD-3-Clause-Open-MPI
 package contract
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
+
+	"github.com/pkg/errors"
+	jschema "github.com/xeipuuv/gojsonschema"
 )
 
 // Spec specifies one or more smart contracts
@@ -106,4 +110,52 @@ func ReadContract(contractFile string) (*Spec, error) {
 		return nil, err
 	}
 	return spec, nil
+}
+
+// ParameterDef returns comma-delimited string of transaction parameters
+func (tx *Transaction) ParameterDef() (string, error) {
+	var args bytes.Buffer
+	delimiter := ""
+	for _, p := range tx.Parameters {
+		attr, err := parameterToAttribute(p)
+		if err != nil {
+			return "", err
+		}
+		args.WriteString(delimiter + attr)
+		delimiter = ","
+	}
+	return args.String(), nil
+}
+
+// ContainsParameter returns true if a parameter matches the specified name
+func (tx *Transaction) ContainsParameter(name string) bool {
+	for _, p := range tx.Parameters {
+		if p.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// contract schema accepts transaction parameters of any JSON schema types, but
+// Flogo model simplify it to support primitive types only, which practically covers all use-cases.
+// so consider only primitive schema types here
+func parameterToAttribute(param *Parameter) (string, error) {
+	if len(param.Name) == 0 {
+		return "", errors.New("name not specified for a transaction parameter")
+	}
+	jsontype, ok := param.Schema["type"].(string)
+	if !ok || len(jsontype) == 0 {
+		return param.Name, nil
+	}
+	switch jsontype {
+	case jschema.TYPE_BOOLEAN:
+		return param.Name + ":false", nil
+	case jschema.TYPE_INTEGER:
+		return param.Name + ":0", nil
+	case jschema.TYPE_NUMBER:
+		return param.Name + ":0.0", nil
+	default:
+		return param.Name, nil
+	}
 }

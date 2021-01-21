@@ -23,7 +23,6 @@ import (
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/trigger"
 	"github.com/project-flogo/flow/definition"
-	jschema "github.com/xeipuuv/gojsonschema"
 )
 
 // ReadAppConfig reads a Flogo app json file and returns app.Config
@@ -272,26 +271,18 @@ func (tx *Transaction) ToHandler(fe bool) (*trigger.HandlerConfig, error) {
 		Name: tx.Name,
 	}
 
-	// convert tranaction parameters
-	var args bytes.Buffer
-	delimiter := ""
-	for _, p := range tx.Parameters {
-		attr, err := parameterToAttribute(p)
-		if err != nil {
-			return nil, err
-		}
-		args.WriteString(delimiter + attr)
-		delimiter = ","
+	param, err := tx.ParameterDef()
+	if err != nil {
+		return nil, err
 	}
 	handler.Settings = map[string]interface{}{
 		"name":       tx.Name,
-		"parameters": args.String(),
+		"parameters": param,
 	}
 
 	// generate flow action
 	res := "res://flow:" + ToSnakeCase(tx.Name)
 	// map all parameters as a single object
-	// TODO: support transient params
 	input := map[string]interface{}{
 		"parameters": "=$.parameters",
 		"transient":  "=$.transient",
@@ -318,29 +309,6 @@ func (tx *Transaction) ToHandler(fe bool) (*trigger.HandlerConfig, error) {
 		}
 	}
 	return handler, nil
-}
-
-// contract schema accepts transaction parameters of any JSON schema types, but
-// Flogo model simplify it to support primitive types only, which practically covers all use-cases.
-// so consider only primitive schema types here
-func parameterToAttribute(param *Parameter) (string, error) {
-	if len(param.Name) == 0 {
-		return "", errors.New("missing name of transaction parameter")
-	}
-	jsontype, ok := param.Schema["type"].(string)
-	if !ok || len(jsontype) == 0 {
-		return param.Name, nil
-	}
-	switch jsontype {
-	case jschema.TYPE_BOOLEAN:
-		return param.Name + ":false", nil
-	case jschema.TYPE_INTEGER:
-		return param.Name + ":0", nil
-	case jschema.TYPE_NUMBER:
-		return param.Name + ":0.0", nil
-	default:
-		return param.Name, nil
-	}
 }
 
 var matchFirstCap = regexp.MustCompile("([A-Z])([A-Z][a-z])")
