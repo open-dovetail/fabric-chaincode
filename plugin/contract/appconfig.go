@@ -222,7 +222,8 @@ func (s *Spec) ToAppConfig(fe bool) (*app.Config, error) {
 	return ac, nil
 }
 
-func setAppResources(config *app.Config, resources map[string]*definition.DefinitionRep) {
+// SetAppResources serialize flow resources and add them to app config
+func SetAppResources(config *app.Config, resources map[string]*definition.DefinitionRep) {
 	config.Resources = make([]*resource.Config, 0)
 	for k, v := range resources {
 		if data, err := marshalNoEscape(v); err == nil {
