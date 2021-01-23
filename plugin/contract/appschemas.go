@@ -41,7 +41,7 @@ func (s *Spec) ConvertAppSchemas() error {
 	for i := 0; i < 10; i++ {
 		count := 0
 		for _, v := range appSchemas {
-			replaced, err := expandRef(v)
+			replaced, err := ExpandRef(v)
 			if err != nil {
 				return err
 			}
@@ -58,8 +58,9 @@ func (s *Spec) ConvertAppSchemas() error {
 	return nil
 }
 
-func getAppSchemas() (map[string]*schema.Def, error) {
-	// construct Flogo schema defs
+// GetAppSchemas construct and return Flogo app schema defs
+func GetAppSchemas() (map[string]*schema.Def, error) {
+
 	result := make(map[string]*schema.Def)
 	for k, v := range appSchemas {
 		jsonbytes, err := json.Marshal(v)
@@ -75,8 +76,8 @@ func getAppSchemas() (map[string]*schema.Def, error) {
 	return result, nil
 }
 
-// expand schema ref, returns true if some refs are replaced
-func expandRef(def interface{}) (bool, error) {
+// ExpandRef expand schema ref, returns true if some refs are replaced
+func ExpandRef(def interface{}) (bool, error) {
 	s, ok := def.(map[string]interface{})
 	if !ok {
 		// not a JSON object, no ref to expand
@@ -93,7 +94,7 @@ func expandRef(def interface{}) (bool, error) {
 		r, ok := c["$ref"]
 		if !ok {
 			// object is not a ref, so call expand recursively
-			done, err := expandRef(v)
+			done, err := ExpandRef(v)
 			if err != nil {
 				return replaced, err
 			}
@@ -129,7 +130,7 @@ func (tx *Transaction) ToHandlerSchema() (*trigger.SchemaConfig, error) {
 			rs := map[string]interface{}{
 				"returns": tx.Returns,
 			}
-			if _, err := expandRef(rs); err == nil {
+			if _, err := ExpandRef(rs); err == nil {
 				if rbytes, err := json.Marshal(rs["returns"]); err == nil {
 					result.Reply = map[string]interface{}{
 						"returns": &schema.Def{
@@ -145,7 +146,7 @@ func (tx *Transaction) ToHandlerSchema() (*trigger.SchemaConfig, error) {
 	// convert parameters schema
 	result.Output = make(map[string]interface{})
 	if len(tx.Parameters) > 0 {
-		ps := parametersToSchema(tx.Parameters)
+		ps := ParametersToSchema(tx.Parameters)
 		if pbytes, err := json.Marshal(ps); err == nil {
 			result.Output["parameters"] = &schema.Def{
 				Type:  "json",
@@ -156,7 +157,7 @@ func (tx *Transaction) ToHandlerSchema() (*trigger.SchemaConfig, error) {
 
 	// convert transient schema
 	if len(tx.Transient) > 0 {
-		if _, err := expandRef(tx.Transient); err == nil {
+		if _, err := ExpandRef(tx.Transient); err == nil {
 			ts := map[string]interface{}{
 				"type":       jschema.TYPE_OBJECT,
 				"properties": tx.Transient,
@@ -172,8 +173,8 @@ func (tx *Transaction) ToHandlerSchema() (*trigger.SchemaConfig, error) {
 	return result, nil
 }
 
-// convert transaction parameters to schema def
-func parametersToSchema(params []*Parameter) map[string]interface{} {
+// ParametersToSchema convert transaction parameters to schema def
+func ParametersToSchema(params []*Parameter) map[string]interface{} {
 	props := make(map[string]interface{})
 	for _, p := range params {
 		props[p.Name] = p.Schema
@@ -184,22 +185,29 @@ func parametersToSchema(params []*Parameter) map[string]interface{} {
 	}
 }
 
-// flowSchema implements schema.Schema, used for flow metadata
-type flowSchema struct {
+// FlowSchema implements schema.Schema, used for flow metadata
+type FlowSchema struct {
 	SchemaType  string `json:"type"`
 	SchemaValue string `json:"value"`
 }
 
-func (f *flowSchema) Type() string {
+// Type implement schema.Schema interface
+func (f *FlowSchema) Type() string {
 	return f.SchemaType
 }
-func (f *flowSchema) Value() string {
+
+// Value implement schema.Schema interface
+func (f *FlowSchema) Value() string {
 	return f.SchemaValue
 }
-func (f *flowSchema) Validate(data interface{}) error {
+
+// Validate implement schema.Schema interface
+func (f *FlowSchema) Validate(data interface{}) error {
 	return nil
 }
-func (f *flowSchema) MarshalJSON() ([]byte, error) {
+
+// MarshalJSON customize JSON marshalling
+func (f *FlowSchema) MarshalJSON() ([]byte, error) {
 	if strings.HasPrefix(f.SchemaValue, "schema://") {
 		return []byte("\"" + f.SchemaValue + "\""), nil
 	}
@@ -212,16 +220,16 @@ func (f *flowSchema) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// create serializable schema for a flow for a given schema def
+// ExtractFlowSchema create serializable schema for a flow for a given schema def
 // to work around FE import issue, the schema def is changed as follows:
 //   for object, export only properties of the object
 //   for array, create app schema, and export a ref
-func extractFlowSchema(schemadef interface{}) schema.Schema {
+func ExtractFlowSchema(schemadef interface{}) schema.Schema {
 	var def *schema.Def
 	switch d := schemadef.(type) {
 	case string:
 		if strings.HasPrefix(d, "schema://") {
-			return &flowSchema{
+			return &FlowSchema{
 				SchemaType:  "json",
 				SchemaValue: d,
 			}
@@ -258,7 +266,7 @@ func extractFlowSchema(schemadef interface{}) schema.Schema {
 		value = string(jsonbytes)
 	}
 
-	return &flowSchema{
+	return &FlowSchema{
 		SchemaType:  def.Type,
 		SchemaValue: value,
 	}
@@ -279,7 +287,7 @@ func cidSchema(cid string) schema.Schema {
 		delimiter = ","
 	}
 	buff.WriteString("}")
-	return &flowSchema{
+	return &FlowSchema{
 		SchemaType:  "json",
 		SchemaValue: buff.String(),
 	}
@@ -363,7 +371,7 @@ func (a *Action) activityInputSchema() map[string]interface{} {
 
 	// add specified schema first
 	if len(a.Input.Schema) > 0 {
-		if _, err := expandRef(a.Input.Schema); err != nil {
+		if _, err := ExpandRef(a.Input.Schema); err != nil {
 			// ignore schema ref errors
 			fmt.Printf("failed to resolve ref in activity schema: %v\n", err)
 		}
@@ -373,7 +381,7 @@ func (a *Action) activityInputSchema() map[string]interface{} {
 				fmt.Printf("failed to serialize activity schema %s: %v\n", k, err)
 				continue
 			}
-			input[k] = &flowSchema{
+			input[k] = &FlowSchema{
 				SchemaType:  "json",
 				SchemaValue: string(scbytes),
 			}
@@ -396,7 +404,7 @@ func (a *Action) activityInputSchema() map[string]interface{} {
 				fmt.Printf("failed to convert schema from input sample %s: %v\n", k, err)
 				continue
 			}
-			input[k] = &flowSchema{
+			input[k] = &FlowSchema{
 				SchemaType:  "json",
 				SchemaValue: sc,
 			}
@@ -424,7 +432,7 @@ func (a *Action) activityInputSchema() map[string]interface{} {
 				fmt.Printf("failed to convert schema from input mapping %s: %v\n", k, err)
 				continue
 			}
-			input[k] = &flowSchema{
+			input[k] = &FlowSchema{
 				SchemaType:  "json",
 				SchemaValue: sc,
 			}
@@ -453,7 +461,7 @@ func (a *Action) ledgerOutputSchema() map[string]interface{} {
 		if v, ok := a.Config["privateHash"].(bool); ok && v {
 			schm := `{"type":"array","items":{"type":"object","properties":{"key":{"type":"string"},"value":{"type":"string"}}}}`
 			return map[string]interface{}{
-				"result": &flowSchema{
+				"result": &FlowSchema{
 					SchemaType:  "json",
 					SchemaValue: schm,
 				},
@@ -520,7 +528,7 @@ func (a *Action) ledgerOutputSchema() map[string]interface{} {
 			return nil
 		}
 		// expand component refs in ledger schema spec
-		_, err = expandRef(schm)
+		_, err = ExpandRef(schm)
 		if err != nil {
 			fmt.Printf("failed to resolve ref in ledger result schema: %v\n", err)
 			return nil
@@ -531,7 +539,7 @@ func (a *Action) ledgerOutputSchema() map[string]interface{} {
 			return nil
 		}
 		return map[string]interface{}{
-			"result": &flowSchema{
+			"result": &FlowSchema{
 				SchemaType:  "json",
 				SchemaValue: string(scbytes),
 			},
@@ -544,7 +552,7 @@ func (a *Action) ledgerOutputSchema() map[string]interface{} {
 func compositeKeySchema() schema.Schema {
 	cks := `[{"name":"","attributes":[""],"keys":[{"name":"","fields":[""],"key":""}]}]`
 	s, _ := json2schema(cks)
-	return &flowSchema{
+	return &FlowSchema{
 		SchemaType:  "json",
 		SchemaValue: s,
 	}

@@ -210,7 +210,7 @@ func (s *Spec) ToAppConfig(fe bool) (*app.Config, error) {
 
 	if fe {
 		// collect app schema for Flogo Enterprise
-		if schm, err := getAppSchemas(); err == nil {
+		if schm, err := GetAppSchemas(); err == nil {
 			ac.Schemas = schm
 		} else {
 			fmt.Printf("failed to collect app schemas: %v\n", err)
@@ -575,19 +575,19 @@ func (tx *Transaction) ToResource(schm *trigger.SchemaConfig, cid string) (strin
 		// add schema info for Flogo Enterprise
 		includeSchema = true
 		if len(tx.Parameters) > 0 {
-			if sc := extractFlowSchema(schm.Output["parameters"]); sc != nil {
+			if sc := ExtractFlowSchema(schm.Output["parameters"]); sc != nil {
 				input["parameters"] = data.NewAttributeWithSchema("parameters", data.TypeObject, nil, sc)
 			}
 		}
 		if len(tx.Transient) > 0 {
-			if sc := extractFlowSchema(schm.Output["transient"]); sc != nil {
+			if sc := ExtractFlowSchema(schm.Output["transient"]); sc != nil {
 				input["transient"] = data.NewAttributeWithSchema("transient", data.TypeObject, nil, sc)
 			}
 		}
 		input["cid"] = data.NewAttributeWithSchema("cid", data.TypeObject, nil, cidSchema(cid))
 		input["txID"] = data.NewAttribute("txID", data.TypeString, "")
 		input["txTime"] = data.NewAttribute("txTime", data.TypeString, "")
-		if sc := extractFlowSchema(schm.Reply["returns"]); sc != nil {
+		if sc := ExtractFlowSchema(schm.Reply["returns"]); sc != nil {
 			rAttr = data.NewAttributeWithSchema("returns", data.TypeAny, nil, sc)
 		}
 	}

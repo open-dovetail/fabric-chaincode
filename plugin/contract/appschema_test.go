@@ -19,7 +19,7 @@ func TestAppSchema(t *testing.T) {
 	assert.NoError(t, err, "read sample contract should not throw error")
 	err = spec.ConvertAppSchemas()
 	assert.NoError(t, err, "convert contract to app config should not throw error")
-	defs, err := getAppSchemas()
+	defs, err := GetAppSchemas()
 	assert.NoError(t, err, "collect contract to app config should not throw error")
 	assert.Equal(t, 6, len(defs), "there should be 6 schemas in the sample contract")
 	for _, v := range defs {
