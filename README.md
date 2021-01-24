@@ -100,7 +100,7 @@ Then, you can add the following lines to the end of the file `go.mod`:
 
 ```script
 replace github.com/project-flogo/flow => github.com/yxuco/flow v1.1.1
-replace github.com/project-flogo/core => github.com/yxuco/core v1.2.1
+replace github.com/project-flogo/core => github.com/yxuco/core v1.2.2
 ```
 
 This will make the Flogo Web UI to use the Flogo fork containing the patches required by the Dovetail contributions.
