@@ -31,6 +31,10 @@ make cc-init
 make cc-test
 ```
 
+## Test chaincode by using HTTP service
+
+You can generate an HTTP service, and then test the contract transactions by using HTTP request, as described [here](https://github.com/open-dovetail/fabric-client/blob/master/contract/README.md).
+
 ## Shutdown test-network
 
 After successful test, you may shutdown the **Fabric test-network**:

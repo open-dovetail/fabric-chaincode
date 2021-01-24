@@ -69,6 +69,10 @@ The Dovetail contributions will all return a status code similar to HTTP spec as
 
 ## Troubleshoot
 
+### Failed to import Flogo model
+
+Make sure that you have installed required Flogo contributions listed above.
+
 ### Failed to install dovetail contributions in Web UI
 
 The Dovetail contributions require a couple of Flogo patches that have not yet been merged to the Flogo core/flow projects, and so to install Dovetail contributions in the Web UI, you can make the following changes after you start the Web UI docker container:
