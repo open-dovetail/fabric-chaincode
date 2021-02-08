@@ -33,7 +33,7 @@ fi
 # create and build source code
 sed "s/{CCNAME}/${CCNAME}/" ${SCRIPT_DIR}/template.mod > ${MODEL_DIR}/go.mod
 cd ${MODEL_DIR}
-flogo create -f ${MODEL} -m go.mod ${CCNAME}
+flogo create --cv v1.2.0 -f ${MODEL} -m go.mod ${CCNAME}
 cd ${CCNAME}
 flogo build --shim fabric_transaction --verbose
 cd src
