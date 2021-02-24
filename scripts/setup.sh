@@ -52,7 +52,8 @@ function installFabricSample {
     mkdir -p ${hlf_path}
     cd ${hlf_path}
     curl -sSL http://bit.ly/2ysbOFE | bash -s -- 2.2.1 1.4.9
-
+  fi
+  if [ ! -f "${hlf_path}/fabric-samples/test-network/docker/docker-compose-cli.yaml" ]; then
     echo "setup cli container for test-network"
     cp ${SCRIPT_DIR}/docker-compose-cli.yaml ${hlf_path}/fabric-samples/test-network/docker
     sed -i -e "s/COMPOSE_FILE_BASE=docker\/docker-compose-test-net.yaml.*/COMPOSE_FILE_BASE=\"docker\/docker-compose-test-net.yaml -f docker\/docker-compose-cli.yaml\"/" ${hlf_path}/fabric-samples/test-network/network.sh
