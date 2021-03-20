@@ -1,0 +1,298 @@
+{
+   "appModel": "1.1.1",
+   "description": "Simple Marble Exchange",
+   "imports": [
+      "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+      "github.com/open-dovetail/fabric-chaincode/activity/get",
+      "github.com/open-dovetail/fabric-chaincode/activity/put",
+      "github.com/project-flogo/contrib/activity/actreturn",
+      "github.com/project-flogo/flow"
+   ],
+   "name": "simple-contract",
+   "resources": [
+      {
+         "data": {
+            "links": [
+               {
+                  "from": "put_1",
+                  "to": "actreturn_1"
+               }
+            ],
+            "metadata": {
+               "input": [
+                  {
+                     "name": "parameters",
+                     "schema": {
+                        "type": "json",
+                        "value": "{\"color\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"owner\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"}}"
+                     },
+                     "type": "object"
+                  },
+                  {
+                     "name": "cid",
+                     "schema": {
+                        "type": "json",
+                        "value": "{\"id\":{\"type\":\"string\"},\"mspid\":{\"type\":\"string\"},\"cn\":{\"type\":\"string\"}}"
+                     },
+                     "type": "object"
+                  },
+                  {
+                     "name": "txID",
+                     "type": "string"
+                  },
+                  {
+                     "name": "txTime",
+                     "type": "string"
+                  }
+               ],
+               "output": [
+                  {
+                     "name": "status",
+                     "type": "integer",
+                     "value": 0
+                  },
+                  {
+                     "name": "message",
+                     "type": "string"
+                  },
+                  {
+                     "name": "returns",
+                     "schema": "schema://marbleKeyValue",
+                     "type": "any"
+                  }
+               ]
+            },
+            "name": "createMarble",
+            "tasks": [
+               {
+                  "activity": {
+                     "input": {
+                        "data": {
+                           "mapping": {
+                              "key": "=$flow.parameters.name",
+                              "value": {
+                                 "color": "=$flow.parameters.color",
+                                 "docType": "marble",
+                                 "name": "=$flow.parameters.name",
+                                 "owner": "=$flow.parameters.owner",
+                                 "size": "=$flow.parameters.size"
+                              }
+                           }
+                        }
+                     },
+                     "ref": "#put",
+                     "schemas": {
+                        "input": {
+                           "data": {
+                              "type": "json",
+                              "value": "{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"color\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"owner\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                           }
+                        },
+                        "output": {
+                           "result": {
+                              "type": "json",
+                              "value": "{\"items\":{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"color\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"owner\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}"
+                           }
+                        }
+                     }
+                  },
+                  "id": "put_1",
+                  "name": "put_1"
+               },
+               {
+                  "activity": {
+                     "ref": "#actreturn",
+                     "settings": {
+                        "mappings": {
+                           "message": "=$activity[put_1].message",
+                           "returns": "=$activity[put_1].result[0]",
+                           "status": "=$activity[put_1].code"
+                        }
+                     }
+                  },
+                  "id": "actreturn_1",
+                  "name": "actreturn_1"
+               }
+            ]
+         },
+         "id": "flow:create_marble"
+      },
+      {
+         "data": {
+            "links": [
+               {
+                  "from": "get_1",
+                  "to": "actreturn_1"
+               }
+            ],
+            "metadata": {
+               "input": [
+                  {
+                     "name": "cid",
+                     "schema": {
+                        "type": "json",
+                        "value": "{\"id\":{\"type\":\"string\"},\"mspid\":{\"type\":\"string\"},\"cn\":{\"type\":\"string\"}}"
+                     },
+                     "type": "object"
+                  },
+                  {
+                     "name": "txID",
+                     "type": "string"
+                  },
+                  {
+                     "name": "txTime",
+                     "type": "string"
+                  },
+                  {
+                     "name": "parameters",
+                     "schema": {
+                        "type": "json",
+                        "value": "{\"name\":{\"type\":\"string\"}}"
+                     },
+                     "type": "object"
+                  }
+               ],
+               "output": [
+                  {
+                     "name": "returns",
+                     "schema": "schema://marbleKeyValue",
+                     "type": "any"
+                  },
+                  {
+                     "name": "status",
+                     "type": "integer",
+                     "value": 0
+                  },
+                  {
+                     "name": "message",
+                     "type": "string"
+                  }
+               ]
+            },
+            "name": "getMarble",
+            "tasks": [
+               {
+                  "activity": {
+                     "input": {
+                        "data": "=$flow.parameters.name"
+                     },
+                     "ref": "#get",
+                     "schemas": {
+                        "output": {
+                           "result": {
+                              "type": "json",
+                              "value": "{\"items\":{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"color\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"owner\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}"
+                           }
+                        }
+                     }
+                  },
+                  "id": "get_1",
+                  "name": "get_1"
+               },
+               {
+                  "activity": {
+                     "ref": "#actreturn",
+                     "settings": {
+                        "mappings": {
+                           "message": "=$activity[get_1].message",
+                           "returns": "=$activity[get_1].result[0]",
+                           "status": "=$activity[get_1].code"
+                        }
+                     }
+                  },
+                  "id": "actreturn_1",
+                  "name": "actreturn_1"
+               }
+            ]
+         },
+         "id": "flow:get_marble"
+      }
+   ],
+   "schemas": {
+      "marble": {
+         "type": "json",
+         "value": "{\"properties\":{\"color\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"owner\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"}},\"type\":\"object\"}"
+      },
+      "marbleKeyValue": {
+         "type": "json",
+         "value": "{\"properties\":{\"key\":{\"type\":\"string\"},\"value\":{\"properties\":{\"color\":{\"type\":\"string\"},\"docType\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"owner\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+      }
+   },
+   "triggers": [
+      {
+         "handlers": [
+            {
+               "action": {
+                  "input": {
+                     "parameters": "=$.parameters",
+                     "transient": "=$.transient"
+                  },
+                  "output": {
+                     "message": "=$.message",
+                     "returns": "=$.returns",
+                     "status": "=$.status"
+                  },
+                  "ref": "#flow",
+                  "settings": {
+                     "flowURI": "res://flow:create_marble"
+                  }
+               },
+               "name": "createMarble",
+               "schemas": {
+                  "output": {
+                     "parameters": {
+                        "type": "json",
+                        "value": "{\"properties\":{\"color\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"owner\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"}},\"type\":\"object\"}"
+                     }
+                  },
+                  "reply": {
+                     "returns": "schema://marbleKeyValue"
+                  }
+               },
+               "settings": {
+                  "name": "createMarble",
+                  "parameters": "name,color,size:0,owner"
+               }
+            },
+            {
+               "action": {
+                  "input": {
+                     "parameters": "=$.parameters",
+                     "transient": "=$.transient"
+                  },
+                  "output": {
+                     "message": "=$.message",
+                     "returns": "=$.returns",
+                     "status": "=$.status"
+                  },
+                  "ref": "#flow",
+                  "settings": {
+                     "flowURI": "res://flow:get_marble"
+                  }
+               },
+               "name": "getMarble",
+               "schemas": {
+                  "output": {
+                     "parameters": {
+                        "type": "json",
+                        "value": "{\"properties\":{\"name\":{\"type\":\"string\"}},\"type\":\"object\"}"
+                     }
+                  },
+                  "reply": {
+                     "returns": "schema://marbleKeyValue"
+                  }
+               },
+               "settings": {
+                  "name": "getMarble",
+                  "parameters": "name"
+               }
+            }
+         ],
+         "id": "fabric_transaction",
+         "ref": "#transaction",
+         "settings": {}
+      }
+   ],
+   "type": "flogo:app",
+   "version": "v0.0.1"
+}

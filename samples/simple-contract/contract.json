@@ -1,0 +1,151 @@
+{
+  "info": {
+    "title": "Simple contract for getting started",
+    "version": "v0.0.1"
+  },
+  "imports": [
+    "github.com/open-dovetail/fabric-chaincode/trigger/transaction",
+    "github.com/open-dovetail/fabric-chaincode/activity/get",
+    "github.com/open-dovetail/fabric-chaincode/activity/put",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/flow"
+  ],
+  "contracts": {
+    "simple-contract": {
+      "name": "Simple Marble Exchange",
+      "transactions": [{
+          "name": "createMarble",
+          "parameters": [{
+              "name": "name",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "color",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "size",
+              "schema": {
+                "type": "integer"
+              }
+            },
+            {
+              "name": "owner",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "returns": {
+            "$ref": "#/components/schemas/marbleKeyValue"
+          },
+          "rules": [{
+            "description": "create or update ledger state",
+            "actions": [{
+                "activity": "#put",
+                "name": "put_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/marble"
+                },
+                "input": {
+                  "schema": {
+                    "data": {
+                      "$ref": "#/components/schemas/marbleKeyValue"
+                    }
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[put_1].code",
+                    "message": "=$activity[put_1].message",
+                    "returns": "=$activity[put_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        },
+        {
+          "name": "getMarble",
+          "parameters": [{
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          }],
+          "returns": {
+            "$ref": "#/components/schemas/marbleKeyValue"
+          },
+          "rules": [{
+            "description": "retrieve state of a marble by name",
+            "actions": [{
+                "activity": "#get",
+                "name": "get_1",
+                "ledger": {
+                  "$ref": "#/components/schemas/marble"
+                },
+                "input": {
+                  "mapping": {
+                    "data": "=$flow.parameters.name"
+                  }
+                }
+              },
+              {
+                "activity": "#actreturn",
+                "input": {
+                  "mapping": {
+                    "status": "=$activity[get_1].code",
+                    "message": "=$activity[get_1].message",
+                    "returns": "=$activity[get_1].result[0]"
+                  }
+                }
+              }
+            ]
+          }]
+        }
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+      "marble": {
+        "$id": "marble",
+        "properties": {
+          "docType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string"
+          }
+        }
+      },
+      "marbleKeyValue": {
+        "$id": "marbleKeyValue",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/marble"
+          }
+        }
+      }
+    }
+  }
+}
