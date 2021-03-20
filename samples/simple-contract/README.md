@@ -4,13 +4,13 @@ This sample is a step-by-step instruction for developing smart contract by using
 
 ## Prerequisite
 
-Follow instructions in [README.md](../../README.md) to setup dev environment and Flogo Web-Ui or Flogo Enterprise.
+Follow instructions in [README.md](../../README.md) to setup dev environment and Flogo Web-UI or Flogo Enterprise.
 
 ## Define contract in JSON
 
-Use a JSON editor such as [Visual Studio Codde](https://code.visualstudio.com/download) to define a contract, which is already done for this sample as shown in [contract.json](./contract.json).
+Use a JSON editor such as [Visual Studio Code](https://code.visualstudio.com/download) to define a contract, which is already done for this sample as shown in [contract.json](./contract.json).
 
-This simple contract specifies only 2 transactions, i.e., `createMarble` and `getMarble`, which demonstrate update and query operations on a ledger, respectively. The contract definition must be valid against the JSON schema as specified in [contract-schema.json](../../contract/contract-schema.json). A more advanced contract definition can be found in [sample-contract.json](../../contract/sample-contract.json).
+This simple contract specifies only 2 transactions, i.e., `createMarble` and `getMarble`, which demonstrate update and query operations on a ledger, respectively. The contract definition must be valid against the JSON schema as specified in [contract-schema.json](../../contract/contract-schema.json). A more advanced contract definition can be found in [sample-contract.json](../../contract/sample-contract.json), which demonstrates more advanced features such as composite key, rich query, private data collection, and ABAC, etc.
 
 ## Generate Flogo model for the contract
 
@@ -24,9 +24,9 @@ The flag `-e` in the above command means to generate a model for Flogo Enterpris
 
 ## Edit Flogo model in Web UI
 
-In the contract defintion [contract.json](./contract.json), we deliberately ignored the input data mapping in the `#put` activity of the transaction `createMarble`. Thus, the generated Flogo model `simple.json` is not fully functional yet. It is also a common scenario that data mappings in a contract definition may be complex and thus can be better mapped with the help of the utilities in Flogo Web UI.
+In the contract defintion [contract.json](./contract.json), we deliberately omitted the input data mapping in the `#put` activity of the transaction `createMarble`. Thus, the generated Flogo model `simple.json` is not fully functional yet. It is, in fact, a common scenario that data mappings in a contract definition may be complex and thus can be better mapped with the help of the utilities in Flogo Web UI.
 
-Assume that we use Flogo Enterprise to edit the model (open-source Flogo Web UI works similarly). Open Flogo Enterprise UI, and create a new model and name it as `simple_fe`, then import the generated model file `simple.json`.
+Assume that we use Flogo Enterprise to edit the model (the open-source Flogo Web UI works similarly). Open Flogo Enterprise UI, and create a new model and name it as `simple_fe`, then import the generated model file `simple.json`.
 
 Drill down to the flow `createMarble` and activity `put_1`. Map the input data of the activity to match the following;
 
@@ -57,7 +57,7 @@ It builds a chaincode package named `simple_cc_1.0.tar.gz`, which can be install
 
 ## Start Hyperledger Fabric test network
 
-Start the `test-network` that was downloaded during the dev setup, and deploy the chaincode package to the test-network. If your dev environment is not the same as the default, you may need to change the location of the `test-network` accordingly.
+Start the `test-network` that was downloaded during the dev setup, and deploy the chaincode package to the test-network. (If your dev environment is not the same as the default, you may need to change the location of the `test-network` accordingly.)
 
 ```bash
 cd ../../../hyperledger/fabric-samples/test-network && ./network.sh up createChannel &
