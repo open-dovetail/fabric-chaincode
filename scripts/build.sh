@@ -38,6 +38,10 @@ cd ${CCNAME}
 flogo build --shim fabric_transaction --verbose
 cd src
 go mod tidy
+if [ ! -f "../bin/${CCNAME}" ]; then
+  echo "Recompile chaincode executable ..."
+  go build -o ../bin
+fi
 
 # copy couchdb index
 if [ -d "${MODEL_DIR}/META-INF" ]; then
