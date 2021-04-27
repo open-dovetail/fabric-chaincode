@@ -41,7 +41,7 @@ make shutdown
 You can view and edit the chaincode implementation in a web-browser. First, start the **Flogo Web UI**:
 
 ```bash
-docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
+docker run -it -p 3303:3303 yxuco/flogo-ui eula-accept
 ```
 
 Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`. Then import the app by selecting the model file [marble.json](./marble.json).

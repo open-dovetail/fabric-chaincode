@@ -20,10 +20,14 @@ With these Flogo extensions, Hyperledger Fabric chaincode can be designed and im
 
 ## Getting Started
 
+For Golang developers on Mac or Linux, you can setup the full development environment locally as follows:
+
 - Download and setup Golang from [here](https://golang.org/dl/).
 - Clone this repo into an empty working directory: `git clone https://github.com/open-dovetail/fabric-chaincode.git`
 - Setup development environment by executing the script: `scripts/setup.sh`
 - Build and run a sample Flogo model [marble](./samples/marble) as described in [README.md](./samples/marble/README.md)
+
+Other developers can follow the instructions in the [demo](https://github.com/open-dovetail/demo/tree/master/blockchain/docker) that uses prebuilt Docker images to build Dovetail applications. This approach requires installation of only Docker and docker-compose, and should work in any platform that supports Docker.
 
 ## Write smart contract in JSON
 
@@ -35,7 +39,13 @@ The [contract example](./contract) shows the JSON schema for smart contract and 
 
 ## View and edit Flogo model
 
-You can view and edit the chaincode implementation in a web-browser. First, start the **Flogo Web UI**:
+To view and edit the chaincode implementation in a web-browser, you can start a **Flogo Web UI** that is preconfigured with Dovetail extensions:
+
+```bash
+docker run -it -p 3303:3303 yxuco/flogo-ui eula-accept
+```
+
+or, you can start the most recent release of **Flogo Web UI** and then install required Dovetail extensions:
 
 ```bash
 docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
