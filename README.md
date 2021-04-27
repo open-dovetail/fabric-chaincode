@@ -37,6 +37,8 @@ All you need to do is to provided a JSON specification of a contract, and then o
 
 The [contract example](./contract) shows the JSON schema for smart contract and a sample contract that you can build and test using the Fabric test-network.
 
+The [demo contract](https://github.com/open-dovetail/demo/tree/master/blockchain) shows the same build process and [steps](https://github.com/open-dovetail/demo/blob/master/blockchain/docker/README.md) to build artifacts by using preconfigured Docker containers.
+
 ## View and edit Flogo model
 
 To view and edit the chaincode implementation in a web-browser, you can start a **Flogo Web UI** that is preconfigured with Dovetail extensions:

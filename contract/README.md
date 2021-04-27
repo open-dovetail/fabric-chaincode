@@ -8,6 +8,8 @@ This [contract sample](./sample-contract.json) demonstrates how you can use **op
 
 Set up development environment by following the **Getting Started** instructions in [README.md](../README.md).
 
+If you do not configure the local Golang development environment, you can follow the steps in the [demo](https://github.com/open-dovetail/demo/blob/master/blockchain/docker/README.md) to build contracts by using preconfigured Docker images.
+
 ## Build and deploy chaincode to Hyperledger Fabric
 
 In a terminal console, change to this directory, and type the command `make`, which will perform the following steps:
@@ -48,7 +50,7 @@ make shutdown
 You can view and edit the chaincode implementation in a web-browser. First, start the **Flogo Web UI**:
 
 ```bash
-docker run -it -p 3303:3303 flogo/flogo-docker eula-accept
+docker run -it -p 3303:3303 yxuco/flogo-ui eula-accept
 ```
 
 Open the **Flogo Web UI** in a web-browser by using the URL: `http://localhost:3303`. Then install the required Flogo extensions as listed in [README](https://github.com/open-dovetail/fabric-chaincode#view-and-edit-flogo-model), and import the app by selecting the generated model file `sample.json`.
